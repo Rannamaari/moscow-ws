@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Products\Tables;
 
+use App\Enums\TaxCategory;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -47,6 +48,9 @@ class ProductsTable
                     ->sortable(),
                 TextColumn::make('minimum_stock')
                     ->sortable(),
+                TextColumn::make('tax_category')
+                    ->label('GST')
+                    ->formatStateUsing(fn (TaxCategory|string|null $state): string => $state instanceof TaxCategory ? $state->label() : (TaxCategory::tryFrom((string) $state)?->label() ?? '—')),
                 IconColumn::make('track_inventory')
                     ->boolean(),
                 IconColumn::make('is_active')

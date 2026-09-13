@@ -16,7 +16,7 @@ class DemoInventorySeeder extends Seeder
      */
     public function run(InventoryService $inventoryService): void
     {
-        $company = Company::query()->where('name', 'Island Thrift Demo Company')->firstOrFail();
+        $company = Company::query()->where('name', 'Moscow Traders Wholesale')->firstOrFail();
         $warehouse = Warehouse::query()
             ->where('company_id', $company->id)
             ->where('code', 'MAIN-WH')

@@ -103,7 +103,7 @@ class ProductImportService
                 'cost_price' => ['required', 'numeric', 'min:0'],
                 'selling_price' => ['required', 'numeric', 'min:0'],
                 'wholesale_price' => ['nullable', 'numeric', 'min:0'],
-                'tax_rate' => ['nullable', 'numeric', 'min:0'],
+                'is_taxable' => ['nullable', 'boolean'],
                 'minimum_stock' => ['nullable', 'numeric', 'min:0'],
             ]);
 
@@ -177,7 +177,10 @@ class ProductImportService
                     'cost_price' => $data['cost_price'],
                     'selling_price' => $data['selling_price'],
                     'wholesale_price' => ($data['wholesale_price'] ?? null) ?: null,
-                    'tax_rate' => isset($data['tax_rate']) && $data['tax_rate'] !== '' ? $data['tax_rate'] : 0,
+                    'tax_rate' => 0,
+                    'is_taxable' => ! array_key_exists('is_taxable', $data)
+                        || $data['is_taxable'] === ''
+                        || filter_var($data['is_taxable'], FILTER_VALIDATE_BOOL),
                     'minimum_stock' => isset($data['minimum_stock']) && $data['minimum_stock'] !== '' ? $data['minimum_stock'] : 0,
                     'allow_negative_stock' => false,
                     'track_inventory' => true,

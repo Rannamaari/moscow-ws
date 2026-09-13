@@ -171,6 +171,7 @@ class InventoryService
         ?string $reason = null,
         ?string $notes = null,
         ?Carbon $occurredAt = null,
+        bool $allowNegativeStockOverride = false,
     ): StockMovement {
         $normalizedQuantity = $this->normalizePositiveQuantity($quantity, 'Decrease quantity');
         $product = $this->resolveProductAndWarehouse($companyId, $warehouseId, $productId)['product'];
@@ -190,6 +191,7 @@ class InventoryService
             $referenceType,
             $referenceId,
             $referenceNumber,
+            $allowNegativeStockOverride,
         ));
     }
 
@@ -485,19 +487,33 @@ class InventoryService
         ?string $referenceType = null,
         ?string $referenceId = null,
         ?string $referenceNumber = null,
+        bool $allowNegativeStockOverride = false,
     ): StockMovement {
         $balance = $lockedBalance ?? $this->lockBalanceRecord($companyId, $warehouseId, $product->id);
         $before = $balance ? (float) $balance->quantity : 0.0;
+        $beforeAverageCost = $balance?->average_cost !== null
+            ? (float) $balance->average_cost
+            : (float) $product->cost_price;
         $delta = (float) $signedQuantity;
         $after = round($before + $delta, 4);
 
-        if ($after < 0 && ! $product->allow_negative_stock) {
+        if ($after < 0 && ! $product->allow_negative_stock && ! $allowNegativeStockOverride) {
             throw new InventoryException('Negative stock is not allowed for this product.');
         }
 
         $balance = $this->ensureBalanceRecord($companyId, $warehouseId, $product->id, $balance);
+        $averageCost = $beforeAverageCost;
+
+        if ($delta > 0 && $unitCost !== null) {
+            $costedBeforeQuantity = max(0, $before);
+            $averageCost = $costedBeforeQuantity <= 0
+                ? $unitCost
+                : (($costedBeforeQuantity * $beforeAverageCost) + ($delta * $unitCost)) / ($costedBeforeQuantity + $delta);
+        }
+
         $balance->forceFill([
             'quantity' => $this->formatDecimal($after),
+            'average_cost' => $this->formatDecimal($averageCost),
         ])->save();
 
         return StockMovement::query()->create([
@@ -576,6 +592,7 @@ class InventoryService
                 'warehouse_id' => $warehouseId,
                 'product_id' => $productId,
                 'quantity' => $this->formatDecimal(0),
+                'average_cost' => null,
             ]);
         } catch (QueryException $exception) {
             if (! $this->isUniqueConstraintViolation($exception)) {

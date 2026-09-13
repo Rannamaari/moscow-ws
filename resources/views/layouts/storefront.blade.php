@@ -3,27 +3,27 @@
     $storeCompany = $store->company();
     $storeCustomer = app(\App\Services\StorefrontCustomerSession::class)->customer(request(), $storeCompany);
     $cartCount = collect(session('store_cart', []))->sum();
-    $logoCandidates = ['images/island thrift logo.png', 'images/island-thrift/logo.webp', 'images/island-thrift/logo.png', 'images/island-thrift/logo.svg', 'logo.png', 'logo.svg'];
+    $logoCandidates = ['images/moscow-traders-wholesale/logo.webp', 'images/moscow-traders-wholesale/logo.png', 'images/moscow-traders-wholesale/logo.svg', 'logo.png', 'logo.svg'];
     $logoPath = collect($logoCandidates)->first(fn ($path) => file_exists(public_path($path)));
-    $pageTitle = trim($__env->yieldContent('title', 'Island Thrift'));
-    $pageDescription = trim($__env->yieldContent('description', 'Shop electronics, phones, laptops, audio and everyday gadgets from Island Thrift in Himmafushi, Maldives.'));
+    $pageTitle = trim($__env->yieldContent('title', 'Moscow Traders Wholesale'));
+    $pageDescription = trim($__env->yieldContent('description', 'Shop wholesale groceries and everyday essentials from Moscow Traders Wholesale in the Maldives.'));
     $canonical = trim($__env->yieldContent('canonical', url()->current()));
     $socialImage = trim($__env->yieldContent('social_image', $logoPath ? asset($logoPath) : ''));
     $robots = trim($__env->yieldContent('robots', 'index, follow, max-image-preview:large'));
     $storeCategories = \App\Models\Category::query()->where('company_id', $storeCompany->id)->where('is_active', true)->whereHas('products', fn ($query) => $query->visibleOnline())->orderBy('name')->limit(8)->get(['name', 'slug']);
     $localBusinessSchema = array_filter([
         '@context' => 'https://schema.org',
-        '@type' => ['Store', 'ElectronicsStore'],
+        '@type' => 'Store',
         '@id' => route('store.home').'#store',
-        'name' => 'Island Thrift',
+        'name' => 'Moscow Traders Wholesale',
         'url' => route('store.home'),
         'logo' => $logoPath ? asset($logoPath) : null,
         'image' => $socialImage ?: null,
         'telephone' => $storeCompany->phone,
         'email' => $storeCompany->email,
         'currenciesAccepted' => 'MVR',
-        'address' => ['@type' => 'PostalAddress', 'addressLocality' => 'Himmafushi', 'addressRegion' => 'Kaafu Atoll', 'addressCountry' => 'MV'],
-        'areaServed' => [['@type' => 'Place', 'name' => 'Himmafushi'], ['@type' => 'City', 'name' => 'Malé'], ['@type' => 'Country', 'name' => 'Maldives']],
+        'address' => ['@type' => 'PostalAddress', 'addressCountry' => 'MV'],
+        'areaServed' => [['@type' => 'Country', 'name' => 'Maldives']],
     ]);
     $configuredAnalyticsId = (string) config('services.google.analytics_measurement_id');
     $googleAnalyticsId = preg_match('/^G-[A-Z0-9]+$/i', $configuredAnalyticsId) ? strtoupper($configuredAnalyticsId) : null;
@@ -42,7 +42,7 @@
     <meta property="og:title" content="{{ $pageTitle }}">
     <meta property="og:description" content="{{ $pageDescription }}">
     <meta property="og:url" content="{{ $canonical }}">
-    <meta property="og:site_name" content="Island Thrift">
+    <meta property="og:site_name" content="Moscow Traders Wholesale">
     <meta property="og:locale" content="en_MV">
     @if($socialImage)<meta property="og:image" content="{{ $socialImage }}">@endif
     <meta name="twitter:card" content="summary_large_image">
@@ -66,12 +66,12 @@
 <body class="storefront-body min-h-screen bg-slate-50 text-slate-950 antialiased">
     <header class="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
         <div class="store-container flex h-16 items-center gap-3 lg:h-20">
-            <a href="{{ route('store.home') }}" class="flex shrink-0 items-center gap-2.5" aria-label="Island Thrift home">
+            <a href="{{ route('store.home') }}" class="flex shrink-0 items-center gap-2.5" aria-label="Moscow Traders Wholesale home">
                 @if($logoPath)
-                    <img src="{{ asset($logoPath) }}" width="1774" height="887" alt="Island Thrift" class="h-11 w-[88px] object-contain lg:h-14 lg:w-28">
+                    <img src="{{ asset($logoPath) }}" width="1774" height="887" alt="Moscow Traders Wholesale" class="h-11 w-[88px] object-contain lg:h-14 lg:w-28">
                 @else
-                    <span class="grid h-10 w-10 place-items-center rounded-2xl bg-indigo-600 text-lg font-black text-white shadow-lg shadow-indigo-200">IT</span>
-                    <span class="leading-none"><strong class="block text-base font-black tracking-tight lg:text-lg">Island Thrift</strong><small class="hidden text-[10px] font-bold uppercase tracking-[.18em] text-indigo-600 sm:block">Tech · Himmafushi</small></span>
+                    <span class="grid h-10 w-10 place-items-center rounded-2xl bg-indigo-600 text-lg font-black text-white shadow-lg shadow-indigo-200">MT</span>
+                    <span class="leading-none"><strong class="block text-base font-black tracking-tight lg:text-lg">Moscow Traders Wholesale</strong><small class="hidden text-[10px] font-bold uppercase tracking-[.18em] text-indigo-600 sm:block">Wholesale Groceries</small></span>
                 @endif
             </a>
 
@@ -127,19 +127,19 @@
 
     <footer class="mt-20 bg-slate-950 text-slate-300">
         <div class="store-container grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
-            <div><div class="mb-4">@if($logoPath)<img src="{{ asset($logoPath) }}" width="1774" height="887" alt="Island Thrift" class="h-16 w-32 object-contain">@else<div class="flex items-center gap-3"><span class="grid h-10 w-10 place-items-center rounded-2xl bg-indigo-500 font-black text-white">IT</span><strong class="text-lg text-white">Island Thrift</strong></div>@endif</div><p class="max-w-xs text-sm leading-6 text-slate-400">Phones, laptops, audio, accessories and useful everyday gadgets, locally in Himmafushi.</p></div>
+            <div><div class="mb-4">@if($logoPath)<img src="{{ asset($logoPath) }}" width="1774" height="887" alt="Moscow Traders Wholesale" class="h-16 w-32 object-contain">@else<div class="flex items-center gap-3"><span class="grid h-10 w-10 place-items-center rounded-2xl bg-indigo-500 font-black text-white">MT</span><strong class="text-lg text-white">Moscow Traders Wholesale</strong></div>@endif</div><p class="max-w-xs text-sm leading-6 text-slate-400">Wholesale groceries, beverages and everyday essentials for your business.</p></div>
             <div><h2 class="store-footer-title">Shop</h2><div class="grid gap-2.5 text-sm"><a href="{{ route('store.shop') }}">All Products</a>@foreach($storeCategories->take(5) as $footerCategory)<a href="{{ route('store.category', $footerCategory->slug) }}">{{ $footerCategory->name }}</a>@endforeach</div></div>
-            <div><h2 class="store-footer-title">Help</h2><div class="grid gap-2.5 text-sm"><a href="{{ route('store.contact') }}">Contact Us</a><a href="{{ route('store.contact') }}#location">Himmafushi, Maldives</a><a href="{{ route('store.shop') }}">Browse Categories</a></div></div>
-            <div><h2 class="store-footer-title">Contact</h2><div class="grid gap-2.5 text-sm text-slate-400">@if($storeCompany->phone)<a href="tel:{{ $storeCompany->phone }}">{{ $storeCompany->phone }}</a>@endif @if($storeCompany->email)<a href="mailto:{{ $storeCompany->email }}">{{ $storeCompany->email }}</a>@endif <span>Himmafushi, Maldives</span></div></div>
+            <div><h2 class="store-footer-title">Help</h2><div class="grid gap-2.5 text-sm"><a href="{{ route('store.contact') }}">Contact Us</a><a href="{{ route('store.contact') }}#location">Maldives</a><a href="{{ route('store.shop') }}">Browse Categories</a></div></div>
+            <div><h2 class="store-footer-title">Contact</h2><div class="grid gap-2.5 text-sm text-slate-400">@if($storeCompany->phone)<a href="tel:{{ $storeCompany->phone }}">{{ $storeCompany->phone }}</a>@endif @if($storeCompany->email)<a href="mailto:{{ $storeCompany->email }}">{{ $storeCompany->email }}</a>@endif <span>Maldives</span></div></div>
         </div>
         <div class="store-container flex flex-col gap-2 border-t border-white/10 py-6 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-            <span>© {{ now()->year }} Island Thrift. All rights reserved.</span>
+            <span>© {{ now()->year }} Moscow Traders Wholesale. All rights reserved.</span>
             <span>Website created by <a href="https://micronet.mv" target="_blank" rel="noopener noreferrer" class="font-semibold text-slate-300 transition hover:text-white">micronet.mv</a></span>
         </div>
     </footer>
 
     @if($storeCompany->website_whatsapp)
-        <a href="https://wa.me/{{ preg_replace('/\D+/', '', $storeCompany->website_whatsapp) }}" target="_blank" rel="noopener" class="fixed right-5 bottom-5 z-40 grid h-14 w-14 place-items-center rounded-full bg-emerald-500 text-white shadow-xl" aria-label="Contact Island Thrift on WhatsApp">WA</a>
+        <a href="https://wa.me/{{ preg_replace('/\D+/', '', $storeCompany->website_whatsapp) }}" target="_blank" rel="noopener" class="fixed right-5 bottom-5 z-40 grid h-14 w-14 place-items-center rounded-full bg-emerald-500 text-white shadow-xl" aria-label="Contact Moscow Traders Wholesale on WhatsApp">WA</a>
     @endif
     @stack('scripts')
 </body>

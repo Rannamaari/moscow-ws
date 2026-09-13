@@ -20,6 +20,7 @@ class CustomerPayment extends Model
         'company_id',
         'customer_id',
         'sale_id',
+        'cashier_shift_id',
         'payment_method',
         'currency',
         'amount',
@@ -48,5 +49,10 @@ class CustomerPayment extends Model
     public function sale(): BelongsTo
     {
         return $this->belongsTo(Sale::class);
+    }
+
+    public function cashierShift(): BelongsTo
+    {
+        return $this->belongsTo(CashierShift::class);
     }
 }

@@ -22,7 +22,7 @@ class DemoTradeSeeder extends Seeder
      */
     public function run(PurchaseService $purchaseService, SalesService $salesService): void
     {
-        $company = Company::query()->where('name', 'Island Thrift Demo Company')->firstOrFail();
+        $company = Company::query()->where('name', 'Moscow Traders Wholesale')->firstOrFail();
         $warehouse = Warehouse::query()
             ->where('company_id', $company->id)
             ->where('code', 'MAIN-WH')
@@ -30,7 +30,7 @@ class DemoTradeSeeder extends Seeder
 
         $suppliers = [
             ['code' => 'SUP-001', 'name' => 'Demo Wholesale Supplier'],
-            ['code' => 'SUP-002', 'name' => 'Island Distributors'],
+            ['code' => 'SUP-002', 'name' => 'Wholesale Distributors'],
             ['code' => 'SUP-003', 'name' => 'General Trading Supplier'],
         ];
 

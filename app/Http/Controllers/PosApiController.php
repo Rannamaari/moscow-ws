@@ -6,7 +6,9 @@ use App\Enums\SaleStatus;
 use App\Exceptions\InventoryException;
 use App\Exceptions\TransactionException;
 use App\Models\CashierShift;
+use App\Models\Company;
 use App\Models\Customer;
+use App\Models\CustomerPayment;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
@@ -106,7 +108,8 @@ class PosApiController extends Controller
                 $query->where(function (Builder $nested) use ($like): void {
                     $nested->where('name', 'like', $like)
                         ->orWhere('phone', 'like', $like)
-                        ->orWhere('code', 'like', $like);
+                        ->orWhere('code', 'like', $like)
+                        ->orWhere('tax_number', 'like', $like);
                 });
             })
             ->orderByDesc('is_walk_in')
@@ -127,6 +130,8 @@ class PosApiController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
+            'tax_number' => ['nullable', 'string', 'max:255'],
+            'payment_terms_days' => ['nullable', 'integer', 'in:7,15,30'],
         ])->validate();
 
         $customer = Customer::query()->create([
@@ -135,6 +140,8 @@ class PosApiController extends Controller
             'name' => $validated['name'],
             'phone' => $validated['phone'] ?? null,
             'email' => $validated['email'] ?? null,
+            'tax_number' => filled($validated['tax_number'] ?? null) ? trim($validated['tax_number']) : null,
+            'payment_terms_days' => $validated['payment_terms_days'] ?? 7,
             'is_active' => true,
             'is_walk_in' => false,
         ]);
@@ -143,6 +150,113 @@ class PosApiController extends Controller
             'message' => 'Customer created.',
             'data' => $this->transformCustomer($customer, $context['branch']->currency),
         ], 201);
+    }
+
+    public function customerStatement(Request $request, Customer $customer): JsonResponse
+    {
+        $context = $this->posContext($request, 'customers.view');
+        abort_unless($customer->company_id === $context['company_id'], 404);
+
+        $currency = $context['branch']->currency;
+        $salesQuery = Sale::query()
+            ->reportable()
+            ->where('company_id', $context['company_id'])
+            ->where('customer_id', $customer->id)
+            ->where('currency', $currency);
+        $salesSummary = (clone $salesQuery)
+            ->selectRaw('COALESCE(SUM(grand_total), 0) as total_invoiced, COALESCE(SUM(paid_total), 0) as total_paid')
+            ->first();
+        $sales = $salesQuery
+            ->orderByDesc('sale_date')
+            ->orderByDesc('completed_at')
+            ->limit(100)
+            ->get();
+        $payments = CustomerPayment::query()
+            ->with('sale:id,sale_number')
+            ->where('company_id', $context['company_id'])
+            ->where('customer_id', $customer->id)
+            ->where('currency', $currency)
+            ->orderByDesc('paid_at')
+            ->limit(100)
+            ->get();
+
+        return response()->json([
+            'data' => [
+                'customer' => $this->transformCustomer($customer, $currency),
+                'summary' => [
+                    'total_invoiced' => number_format((float) ($salesSummary->total_invoiced ?? 0), 4, '.', ''),
+                    'total_paid' => number_format((float) ($salesSummary->total_paid ?? 0), 4, '.', ''),
+                    'outstanding_balance' => $this->customerLedgerService->currentBalance($customer->id, $currency),
+                ],
+                'invoices' => $sales->map(fn (Sale $sale): array => [
+                    'id' => $sale->id,
+                    'sale_number' => $sale->sale_number,
+                    'date' => $sale->sale_date?->toDateString(),
+                    'grand_total' => (string) $sale->grand_total,
+                    'paid_total' => (string) $sale->paid_total,
+                    'balance_due' => (string) $sale->balance_due,
+                    'due_date' => $sale->due_date?->toDateString(),
+                    'payment_terms_days' => $sale->payment_terms_days,
+                    'status' => $sale->status->value,
+                    'customer' => $this->transformCustomer($customer, $currency),
+                ])->all(),
+                'payments' => $payments->map(fn (CustomerPayment $payment): array => [
+                    'id' => $payment->id,
+                    'sale_id' => $payment->sale_id,
+                    'sale_number' => $payment->sale?->sale_number,
+                    'paid_at' => $payment->paid_at?->timezone(config('app.business_timezone'))->toIso8601String(),
+                    'payment_method' => $payment->payment_method,
+                    'amount' => (string) $payment->amount,
+                    'reference' => $payment->reference,
+                    'notes' => $payment->notes,
+                ])->all(),
+            ],
+        ]);
+    }
+
+    public function receiveCustomerPayment(Request $request, Sale $sale): JsonResponse
+    {
+        $context = $this->posContext($request, 'customers.payments');
+        $this->ensureSaleInContext($sale, $context['company_id']);
+
+        if (! $sale->customer_id || $sale->customer?->is_walk_in) {
+            return response()->json(['message' => 'Payments can only be received against a regular customer credit bill.'], 422);
+        }
+
+        if (! in_array($sale->status, [SaleStatus::Completed, SaleStatus::PartiallyRefunded, SaleStatus::Refunded], true)) {
+            return response()->json(['message' => 'Payments can only be received against a completed credit bill.'], 422);
+        }
+
+        if ((float) $sale->balance_due <= 0) {
+            return response()->json(['message' => 'This bill has no outstanding balance.'], 422);
+        }
+
+        $validated = Validator::make($request->all(), [
+            'amount' => ['required', 'numeric', 'gt:0'],
+            'payment_method' => ['required', 'in:cash,card,bank_transfer,other'],
+            'reference' => ['nullable', 'string', 'max:255'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ])->validate();
+        $shift = $this->requireActiveShift($context, $request);
+
+        return $this->executeSaleMutation(function () use ($request, $context, $sale, $validated, $shift): Sale {
+            $this->customerLedgerService->recordPayment(
+                $context['company_id'],
+                $sale->customer_id,
+                $validated['amount'],
+                $validated['payment_method'],
+                [
+                    'sale_id' => $sale->id,
+                    'cashier_shift_id' => $shift->id,
+                    'reference' => $validated['reference'] ?? null,
+                    'notes' => $validated['notes'] ?? null,
+                    'created_by' => $request->user()->id,
+                    'paid_at' => now(),
+                ],
+            );
+
+            return $sale->fresh(['items.product.primaryBarcode', 'payments', 'customer']);
+        }, successMessage: 'Customer payment received.');
     }
 
     public function completeSale(Request $request): JsonResponse
@@ -564,6 +678,10 @@ class PosApiController extends Controller
      */
     private function checkStructuredStock(string $companyId, string $warehouseId, array $items): void
     {
+        if (Company::query()->whereKey($companyId)->value('pos_test_mode')) {
+            return;
+        }
+
         $errors = [];
 
         foreach ($items as $item) {
@@ -631,6 +749,7 @@ class PosApiController extends Controller
     {
         $productIds = collect($items)->pluck('product_id')->filter()->values();
         $products = Product::query()
+            ->with('company:id,default_tax_rate')
             ->where('company_id', $companyId)
             ->whereIn('id', $productIds)
             ->get()
@@ -650,7 +769,7 @@ class PosApiController extends Controller
             $discountAmount = (float) ($item['discount_amount'] ?? 0);
             $lineSubtotal = round($quantity * $unitPrice, 4);
             $taxBase = round($lineSubtotal - $discountAmount, 4);
-            $taxAmount = round($taxBase * ((float) $product->tax_rate / 100), 4);
+            $taxAmount = round($taxBase * ($product->effectiveTaxRate() / 100), 4);
 
             return round($taxBase + $taxAmount, 4);
         }), 4);
@@ -725,7 +844,7 @@ class PosApiController extends Controller
 
     private function transformProductForPosFromBalance(Product $product, ?string $balance, string $branchId): array
     {
-        $product->loadMissing(['unit', 'primaryBarcode']);
+        $product->loadMissing(['unit', 'primaryBarcode', 'company:id,default_tax_rate']);
         $price = $product->branchPrices()->where('branch_id', $branchId)->first();
 
         return [
@@ -735,7 +854,7 @@ class PosApiController extends Controller
             'barcode' => $product->primaryBarcode?->barcode,
             'price' => (string) ($price?->selling_price ?? $product->selling_price),
             'cost_price' => (string) ($price?->cost_price ?? $product->cost_price),
-            'tax_rate' => (string) $product->tax_rate,
+            'tax_rate' => number_format($product->effectiveTaxRate(), 4, '.', ''),
             'stock' => $product->track_inventory ? $balance : null,
             'stock_label' => $product->track_inventory ? $balance : 'Non-stock',
             'track_inventory' => $product->track_inventory,
@@ -755,6 +874,8 @@ class PosApiController extends Controller
             'name' => $customer->name,
             'phone' => $customer->phone,
             'email' => $customer->email,
+            'tax_number' => $customer->tax_number,
+            'payment_terms_days' => $customer->payment_terms_days ?? 7,
             'balance' => $this->customerLedgerService->currentBalance($customer->id, $currency),
             'credit_limit' => $customer->credit_limit,
             'is_walk_in' => $customer->is_walk_in,
@@ -850,6 +971,9 @@ class PosApiController extends Controller
             'grand_total' => (string) $sale->grand_total,
             'paid_total' => (string) $sale->paid_total,
             'balance_due' => (string) $sale->balance_due,
+            'customer_tax_number' => $sale->customer_tax_number,
+            'payment_terms_days' => $sale->payment_terms_days,
+            'due_date' => $sale->due_date?->toDateString(),
             'cancellation_reason' => $sale->cancellation_reason,
             'cancellation_notes' => $sale->cancellation_notes,
             'cancelled_at' => $sale->cancelled_at?->timezone(config('app.business_timezone'))->toIso8601String(),

@@ -3,7 +3,7 @@
         {{ $this->form }}
 
         <x-filament::button type="submit">
-            Save Receipt Settings
+            Save Settings
         </x-filament::button>
     </form>
 </x-filament-panels::page>

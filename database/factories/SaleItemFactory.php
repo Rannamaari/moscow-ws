@@ -49,6 +49,7 @@ class SaleItemFactory extends Factory
             'discount_amount' => 0,
             'tax_rate' => 0,
             'tax_amount' => 0,
+            'tax_category' => 'standard_rated',
             'line_total' => 40,
         ];
     }

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Purchases\Schemas;
 
 use App\Enums\PurchaseStatus;
+use App\Enums\TaxCategory;
 use App\Filament\Support\AdminSupport;
 use App\Models\Product;
 use Filament\Forms\Components\DatePicker;
@@ -12,9 +13,10 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Schemas\Schema;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Illuminate\Support\HtmlString;
 
 class PurchaseForm
@@ -24,8 +26,13 @@ class PurchaseForm
         return $schema
             ->components([
                 Section::make('Purchase Order')
+                    ->columnSpanFull()
                     ->schema([
-                        Grid::make(3)
+                        Grid::make([
+                            'default' => 1,
+                            'md' => 2,
+                            'xl' => 4,
+                        ])
                             ->schema([
                                 Select::make('supplier_id')
                                     ->label('Supplier')
@@ -43,12 +50,22 @@ class PurchaseForm
                                     ->disabled(fn (): bool => count(AdminSupport::warehouseOptions()) === 1)
                                     ->dehydrated(),
                                 Select::make('status')
+                                    ->label('Save Action')
                                     ->required()
                                     ->default(PurchaseStatus::Ordered->value)
-                                    ->options([
-                                        PurchaseStatus::Draft->value => 'Save Draft',
-                                        PurchaseStatus::Ordered->value => 'Save as Ordered',
-                                    ]),
+                                    ->options(function (): array {
+                                        $options = [
+                                            PurchaseStatus::Draft->value => 'Save Draft',
+                                            PurchaseStatus::Ordered->value => 'Create Order (stock unchanged)',
+                                        ];
+
+                                        if (auth()->user()?->can('purchases.receive')) {
+                                            $options['receive_now'] = 'Save & Receive into Inventory';
+                                        }
+
+                                        return $options;
+                                    })
+                                    ->helperText('Choose Save & Receive when the supplier items have already arrived.'),
                                 DatePicker::make('purchase_date')
                                     ->required()
                                     ->default(now()),
@@ -59,17 +76,20 @@ class PurchaseForm
                                 TextInput::make('shipping_total')
                                     ->numeric()
                                     ->default(0)
-                                    ->minValue(0),
+                                    ->minValue(0)
+                                    ->live(debounce: 300),
                                 TextInput::make('other_cost_total')
                                     ->numeric()
                                     ->default(0)
-                                    ->minValue(0),
+                                    ->minValue(0)
+                                    ->live(debounce: 300),
                                 Textarea::make('notes')
                                     ->rows(3)
                                     ->columnSpanFull(),
                             ]),
                     ]),
                 Section::make('Products')
+                    ->columnSpanFull()
                     ->schema([
                         Repeater::make('items')
                             ->label('Purchase Lines')
@@ -80,57 +100,138 @@ class PurchaseForm
                             ->reorderable(false)
                             ->schema([
                                 Hidden::make('description'),
-                                Grid::make(6)
+                                Grid::make([
+                                    'default' => 1,
+                                    'md' => 6,
+                                    'xl' => 12,
+                                ])
                                     ->schema([
                                         Select::make('product_id')
                                             ->label('Product')
                                             ->required()
                                             ->searchable()
+                                            ->live()
                                             ->getSearchResultsUsing(fn (string $search): array => static::searchProducts($search))
                                             ->getOptionLabelUsing(fn ($value): ?string => static::productLabel($value))
                                             ->afterStateUpdated(function ($state, $set): void {
                                                 $product = $state ? Product::query()->with('primaryBarcode')->find($state) : null;
 
-                                                $set('sku', $product?->sku);
                                                 $set('description', $product?->name);
                                                 $set('unit_cost', $product ? (float) $product->cost_price : 0);
-                                                $set('tax_rate', $product ? (float) $product->tax_rate : 0);
+                                                $set('tax_rate', $product ? $product->effectiveTaxRate() : 0);
+                                                $set('tax_category', $product?->tax_category?->value ?? TaxCategory::StandardRated->value);
+                                                $set('input_tax_claimable', (bool) $product?->is_taxable);
                                             })
-                                            ->columnSpan(2),
-                                        TextInput::make('sku')
-                                            ->disabled()
-                                            ->dehydrated(false),
+                                            ->columnSpan([
+                                                'default' => 1,
+                                                'md' => 6,
+                                                'xl' => 6,
+                                            ]),
                                         TextInput::make('ordered_quantity')
-                                            ->label('Ordered Quantity')
+                                            ->label('Quantity')
                                             ->required()
                                             ->numeric()
-                                            ->minValue(0.0001),
+                                            ->default(1)
+                                            ->minValue(0.0001)
+                                            ->live(debounce: 300)
+                                            ->columnSpan([
+                                                'default' => 1,
+                                                'md' => 2,
+                                                'xl' => 2,
+                                            ]),
                                         TextInput::make('unit_cost')
-                                            ->label('Unit Cost')
+                                            ->label('Cost per Unit')
                                             ->required()
-                                            ->numeric()
-                                            ->minValue(0),
-                                        TextInput::make('discount_amount')
-                                            ->label('Discount')
                                             ->numeric()
                                             ->default(0)
-                                            ->minValue(0),
+                                            ->minValue(0)
+                                            ->live(debounce: 300)
+                                            ->columnSpan([
+                                                'default' => 1,
+                                                'md' => 2,
+                                                'xl' => 2,
+                                            ]),
+                                        Placeholder::make('line_total_preview')
+                                            ->label('Line Total')
+                                            ->content(fn ($get): HtmlString => new HtmlString('<strong style="font-size:1.1rem">'.number_format(static::lineTotal($get), 2, '.', ',').'</strong>'))
+                                            ->columnSpan([
+                                                'default' => 1,
+                                                'md' => 2,
+                                                'xl' => 2,
+                                            ]),
+                                        TextInput::make('discount_amount')
+                                            ->label('Line Discount')
+                                            ->numeric()
+                                            ->default(0)
+                                            ->minValue(0)
+                                            ->live(debounce: 300)
+                                            ->columnSpan([
+                                                'default' => 1,
+                                                'md' => 3,
+                                                'xl' => 2,
+                                            ]),
                                         TextInput::make('tax_rate')
                                             ->label('Tax %')
                                             ->numeric()
                                             ->default(0)
-                                            ->minValue(0),
-                                        Placeholder::make('line_total_preview')
-                                            ->label('Line Total')
-                                            ->content(fn ($get): string => number_format(static::lineTotal($get), 4, '.', ''))
-                                            ->columnSpan(2),
+                                            ->minValue(0)
+                                            ->live(debounce: 300)
+                                            ->columnSpan([
+                                                'default' => 1,
+                                                'md' => 3,
+                                                'xl' => 2,
+                                            ]),
+                                        Select::make('tax_category')
+                                            ->label('GST Classification')
+                                            ->options(TaxCategory::options())
+                                            ->default(TaxCategory::StandardRated->value)
+                                            ->required()
+                                            ->live()
+                                            ->afterStateUpdated(function ($state, $set): void {
+                                                if ($state !== TaxCategory::StandardRated->value) {
+                                                    $set('tax_rate', 0);
+                                                    $set('input_tax_claimable', false);
+                                                }
+                                            })
+                                            ->columnSpan([
+                                                'default' => 1,
+                                                'md' => 6,
+                                                'xl' => 4,
+                                            ]),
+                                        Toggle::make('price_includes_tax')
+                                            ->label('Cost includes GST')
+                                            ->helperText('Enable when the entered unit cost already includes GST.')
+                                            ->default(false)
+                                            ->live()
+                                            ->inline(false)
+                                            ->columnSpan([
+                                                'default' => 1,
+                                                'md' => 3,
+                                                'xl' => 2,
+                                            ]),
+                                        Toggle::make('input_tax_claimable')
+                                            ->label('Claim input GST')
+                                            ->helperText('Disable when this GST cannot be claimed from MIRA.')
+                                            ->default(true)
+                                            ->live()
+                                            ->inline(false)
+                                            ->columnSpan([
+                                                'default' => 1,
+                                                'md' => 3,
+                                                'xl' => 2,
+                                            ]),
                                     ]),
                             ])
                             ->columns(1),
                     ]),
                 Section::make('Totals Preview')
+                    ->columnSpanFull()
                     ->schema([
-                        Grid::make(5)
+                        Grid::make([
+                            'default' => 1,
+                            'sm' => 2,
+                            'xl' => 5,
+                        ])
                             ->schema([
                                 Placeholder::make('subtotal_preview')
                                     ->label('Subtotal')
@@ -139,7 +240,7 @@ class PurchaseForm
                                     ->label('Discount')
                                     ->content(fn ($get): string => number_format(static::totals($get)['discount_total'], 4, '.', '')),
                                 Placeholder::make('tax_preview')
-                                    ->label('Tax')
+                                    ->label('Total GST')
                                     ->content(fn ($get): string => number_format(static::totals($get)['tax_total'], 4, '.', '')),
                                 Placeholder::make('other_preview')
                                     ->label('Shipping + Other')
@@ -200,10 +301,14 @@ class PurchaseForm
         $unitCost = (float) ($get('unit_cost') ?: 0);
         $discount = (float) ($get('discount_amount') ?: 0);
         $taxRate = (float) ($get('tax_rate') ?: 0);
+        $includesTax = (bool) $get('price_includes_tax');
         $subtotal = $quantity * $unitCost;
         $taxBase = max(0, $subtotal - $discount);
+        $tax = $includesTax && $taxRate > 0
+            ? $taxBase * ($taxRate / (100 + $taxRate))
+            : $taxBase * ($taxRate / 100);
 
-        return round($taxBase + ($taxBase * ($taxRate / 100)), 4);
+        return round($includesTax ? $taxBase : $taxBase + $tax, 4);
     }
 
     /**
@@ -221,9 +326,12 @@ class PurchaseForm
             $unitCost = (float) ($item['unit_cost'] ?? 0);
             $discount = (float) ($item['discount_amount'] ?? 0);
             $taxRate = (float) ($item['tax_rate'] ?? 0);
+            $includesTax = (bool) ($item['price_includes_tax'] ?? false);
             $lineSubtotal = round($quantity * $unitCost, 4);
             $lineTaxBase = max(0, $lineSubtotal - $discount);
-            $lineTax = round($lineTaxBase * ($taxRate / 100), 4);
+            $lineTax = round($includesTax && $taxRate > 0
+                ? $lineTaxBase * ($taxRate / (100 + $taxRate))
+                : $lineTaxBase * ($taxRate / 100), 4);
 
             $subtotal += $lineSubtotal;
             $discountTotal += $discount;
@@ -237,7 +345,12 @@ class PurchaseForm
             'discount_total' => round($discountTotal, 4),
             'tax_total' => round($taxTotal, 4),
             'other_total' => round($other, 4),
-            'grand_total' => round($subtotal - $discountTotal + $taxTotal + $other, 4),
+            'grand_total' => round($subtotal - $discountTotal + collect($items)->reject(fn (array $item): bool => (bool) ($item['price_includes_tax'] ?? false))->sum(function (array $item): float {
+                $base = max(0, ((float) ($item['ordered_quantity'] ?? 0) * (float) ($item['unit_cost'] ?? 0)) - (float) ($item['discount_amount'] ?? 0));
+                $rate = (float) ($item['tax_rate'] ?? 0);
+
+                return round($base * ($rate / 100), 4);
+            }) + $other, 4),
         ];
     }
 }

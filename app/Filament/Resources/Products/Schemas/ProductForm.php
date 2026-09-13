@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Products\Schemas;
 
+use App\Enums\TaxCategory;
 use App\Filament\Resources\InventoryOverview\InventoryOverviewResource;
 use App\Filament\Support\AdminSupport;
 use App\Models\Branch;
@@ -88,7 +89,7 @@ class ProductForm
                             ]),
                     ]),
                 Section::make('Online Store')
-                    ->description('Control how this product appears on the Island Thrift website.')
+                    ->description('Control how this product appears on the Moscow Traders Wholesale website.')
                     ->schema([
                         Grid::make(3)->schema([
                             Toggle::make('show_online')->label('Show Online')->default(false)->inline(false),
@@ -134,7 +135,12 @@ class ProductForm
                                 TextInput::make('cost_price')->numeric()->minValue(0)->default(0),
                                 TextInput::make('selling_price')->numeric()->minValue(0)->required(),
                                 TextInput::make('wholesale_price')->numeric()->minValue(0),
-                                TextInput::make('tax_rate')->numeric()->minValue(0)->default(0),
+                                Select::make('tax_category')
+                                    ->label('GST Classification')
+                                    ->options(TaxCategory::options())
+                                    ->default(TaxCategory::StandardRated->value)
+                                    ->helperText('Standard-rated products use the GST rate in Settings. Select the exact MIRA category for all others.')
+                                    ->required(),
                                 TextInput::make('minimum_stock')->numeric()->minValue(0)->default(0),
                             ]),
                     ]),

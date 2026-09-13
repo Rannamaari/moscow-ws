@@ -22,7 +22,7 @@ class StorefrontSettings extends Page
 
     protected static ?string $navigationLabel = 'Storefront Settings';
 
-    protected static ?string $title = 'Island Thrift Storefront';
+    protected static ?string $title = 'Moscow Traders Wholesale Storefront';
 
     protected string $view = 'filament.pages.storefront-settings';
 

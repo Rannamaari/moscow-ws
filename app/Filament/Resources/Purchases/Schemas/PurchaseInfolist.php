@@ -4,10 +4,11 @@ namespace App\Filament\Resources\Purchases\Schemas;
 
 use App\Models\Purchase;
 use App\Models\StockMovement;
+use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
-use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 
 class PurchaseInfolist
 {
@@ -28,39 +29,80 @@ class PurchaseInfolist
                                 TextEntry::make('warehouse.name'),
                                 TextEntry::make('expected_date')->date(),
                                 TextEntry::make('creator.name')->label('Created By'),
-                                TextEntry::make('grand_total')->money('MVR'),
-                                TextEntry::make('paid_total')->money('MVR'),
-                                TextEntry::make('balance_due')->money('MVR'),
                                 TextEntry::make('receiver.name')->label('Last Received By'),
                                 TextEntry::make('received_at')->dateTime(),
                                 TextEntry::make('notes')->columnSpanFull(),
                             ]),
                     ]),
+                Section::make('Purchase Totals')
+                    ->description('Automatically calculated from the saved purchase lines.')
+                    ->schema([
+                        Grid::make([
+                            'default' => 1,
+                            'sm' => 2,
+                            'xl' => 4,
+                        ])
+                            ->schema([
+                                TextEntry::make('subtotal')->label('Subtotal')->money('MVR'),
+                                TextEntry::make('discount_total')->label('Discount')->money('MVR'),
+                                TextEntry::make('tax_total')
+                                    ->label('Total GST')
+                                    ->money('MVR')
+                                    ->weight('bold')
+                                    ->color('primary'),
+                                TextEntry::make('shipping_total')->label('Shipping')->money('MVR'),
+                                TextEntry::make('other_cost_total')->label('Other Costs')->money('MVR'),
+                                TextEntry::make('grand_total')->label('Grand Total')->money('MVR')->weight('bold'),
+                                TextEntry::make('paid_total')->label('Paid')->money('MVR'),
+                                TextEntry::make('balance_due')->label('Balance Due')->money('MVR')->weight('bold'),
+                            ]),
+                    ]),
                 Section::make('Items')
                     ->schema([
-                        TextEntry::make('items.product.name')
-                            ->label('Products')
-                            ->listWithLineBreaks(),
-                        TextEntry::make('items.product.sku')
-                            ->label('SKU')
-                            ->listWithLineBreaks(),
-                        TextEntry::make('items.ordered_quantity')
-                            ->label('Ordered')
-                            ->listWithLineBreaks(),
-                        TextEntry::make('items.received_quantity')
-                            ->label('Received')
-                            ->listWithLineBreaks(),
-                        TextEntry::make('remaining_quantity')
-                            ->label('Remaining')
-                            ->state(fn (Purchase $record): array => $record->items->map(fn ($item) => number_format(max(0, (float) $item->ordered_quantity - (float) $item->received_quantity), 4, '.', ''))->all())
-                            ->listWithLineBreaks(),
-                        TextEntry::make('items.unit_cost')
-                            ->label('Unit Cost')
-                            ->listWithLineBreaks(),
-                        TextEntry::make('items.line_total')
-                            ->label('Line Total')
-                            ->listWithLineBreaks(),
-                    ]),
+                        TextEntry::make('inventory_status')
+                            ->label('Inventory Status')
+                            ->state(function (Purchase $record): string {
+                                $received = (float) $record->items->sum('received_quantity');
+                                $ordered = (float) $record->items->sum('ordered_quantity');
+
+                                if ($received <= 0) {
+                                    return 'Not received — click Receive Into Inventory above to add stock.';
+                                }
+
+                                if ($received + 0.0001 < $ordered) {
+                                    return 'Partially received — use Receive Into Inventory for the remaining items.';
+                                }
+
+                                return 'Fully received into inventory.';
+                            })
+                            ->badge()
+                            ->color(fn (Purchase $record): string => (float) $record->items->sum('received_quantity') <= 0
+                                ? 'warning'
+                                : ((float) $record->items->sum('received_quantity') + 0.0001 < (float) $record->items->sum('ordered_quantity') ? 'info' : 'success'))
+                            ->columnSpanFull(),
+                        RepeatableEntry::make('items')
+                            ->label('Ordered Products')
+                            ->schema([
+                                TextEntry::make('product.name')->label('Product')->weight('bold'),
+                                TextEntry::make('product.sku')->label('SKU'),
+                                TextEntry::make('ordered_quantity')->label('Ordered')->numeric(decimalPlaces: 2),
+                                TextEntry::make('received_quantity')->label('Received')->numeric(decimalPlaces: 2),
+                                TextEntry::make('remaining_quantity')
+                                    ->label('Remaining')
+                                    ->state(fn ($record): float => max(0, (float) $record->ordered_quantity - (float) $record->received_quantity))
+                                    ->numeric(decimalPlaces: 2),
+                                TextEntry::make('unit_cost')->label('Unit Cost')->money('MVR'),
+                                TextEntry::make('tax_amount')->label('GST')->money('MVR'),
+                                TextEntry::make('line_total')->label('Line Total')->money('MVR')->weight('bold'),
+                            ])
+                            ->columns([
+                                'default' => 1,
+                                'md' => 4,
+                                'xl' => 8,
+                            ])
+                            ->columnSpanFull(),
+                    ])
+                    ->columnSpanFull(),
                 Section::make('Receipt History')
                     ->schema([
                         TextEntry::make('receipt_history')

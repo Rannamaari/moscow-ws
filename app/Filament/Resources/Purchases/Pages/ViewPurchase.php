@@ -31,8 +31,11 @@ class ViewPurchase extends ViewRecord
             EditAction::make()
                 ->visible(fn (): bool => PurchaseResource::canEdit($this->getRecord())),
             Action::make('receive_items')
-                ->label('Receive Items')
+                ->label('Receive Into Inventory')
                 ->icon('heroicon-o-arrow-down-tray')
+                ->color('primary')
+                ->modalHeading('Receive Purchase Items Into Inventory')
+                ->modalDescription('The remaining quantities are prefilled. Confirm the physical quantities received, then submit to update stock.')
                 ->visible(fn (): bool => auth()->user()?->can('purchases.receive')
                     && in_array($this->getRecord()->status, [PurchaseStatus::Ordered, PurchaseStatus::PartiallyReceived], true))
                 ->form([

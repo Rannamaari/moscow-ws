@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\TaxCategory;
 use App\Services\ProductSearchService;
 use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -37,6 +38,8 @@ class Product extends Model
         'selling_price',
         'wholesale_price',
         'tax_rate',
+        'is_taxable',
+        'tax_category',
         'minimum_stock',
         'allow_negative_stock',
         'track_inventory',
@@ -56,6 +59,8 @@ class Product extends Model
             'selling_price' => 'decimal:4',
             'wholesale_price' => 'decimal:4',
             'tax_rate' => 'decimal:4',
+            'is_taxable' => 'boolean',
+            'tax_category' => TaxCategory::class,
             'minimum_stock' => 'decimal:4',
             'allow_negative_stock' => 'boolean',
             'track_inventory' => 'boolean',
@@ -77,6 +82,14 @@ class Product extends Model
         });
 
         static::saving(function (Product $product): void {
+            if ($product->isDirty('tax_category')) {
+                $product->is_taxable = $product->tax_category === TaxCategory::StandardRated;
+            } elseif ($product->isDirty('is_taxable')) {
+                $product->tax_category = $product->is_taxable
+                    ? TaxCategory::StandardRated
+                    : TaxCategory::Exempt;
+            }
+
             if (blank($product->slug) || $product->isDirty(['name', 'sku'])) {
                 $base = Str::slug("{$product->name}-{$product->sku}") ?: Str::lower($product->sku);
                 $slug = $base;
@@ -119,6 +132,17 @@ class Product extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function effectiveTaxRate(): float
+    {
+        if (($this->tax_category ?? TaxCategory::StandardRated) !== TaxCategory::StandardRated) {
+            return 0.0;
+        }
+
+        return (float) ($this->relationLoaded('company')
+            ? $this->company?->default_tax_rate
+            : $this->company()->value('default_tax_rate'));
     }
 
     public function category(): BelongsTo

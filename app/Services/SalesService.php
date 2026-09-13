@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\CustomerTransactionType;
 use App\Enums\SaleStatus;
 use App\Enums\StockMovementType;
+use App\Enums\TaxCategory;
 use App\Exceptions\TransactionException;
 use App\Models\Branch;
 use App\Models\CashierShift;
@@ -94,6 +95,8 @@ class SalesService
                 'warehouse_id' => $warehouse->id,
                 'cashier_shift_id' => $attributes['cashier_shift_id'] ?? null,
                 'customer_id' => $customer?->id,
+                'customer_tax_number' => $customer?->tax_number,
+                'payment_terms_days' => $customer && ! $customer->is_walk_in ? ($customer->payment_terms_days ?? 7) : null,
                 'sale_number' => $attributes['sale_number'] ?? $this->numberSequenceService->next($companyId, 'sale'),
                 'status' => $status,
                 'currency' => $branch->currency,
@@ -130,6 +133,7 @@ class SalesService
                     'discount_amount' => $lineItem['discount_amount'],
                     'tax_rate' => $lineItem['tax_rate'],
                     'tax_amount' => $lineItem['tax_amount'],
+                    'tax_category' => $lineItem['tax_category'],
                     'line_total' => $lineItem['line_total'],
                 ]);
             }
@@ -211,6 +215,8 @@ class SalesService
                 'currency' => $branch->currency,
                 'warehouse_id' => $warehouse->id,
                 'customer_id' => $customer?->id,
+                'customer_tax_number' => $customer?->tax_number,
+                'payment_terms_days' => $customer && ! $customer->is_walk_in ? ($customer->payment_terms_days ?? 7) : null,
                 'subtotal' => $totals['subtotal'],
                 'discount_total' => $totals['discount_total'],
                 'tax_total' => $totals['tax_total'],
@@ -245,6 +251,7 @@ class SalesService
                     'discount_amount' => $lineItem['discount_amount'],
                     'tax_rate' => $lineItem['tax_rate'],
                     'tax_amount' => $lineItem['tax_amount'],
+                    'tax_category' => $lineItem['tax_category'],
                     'line_total' => $lineItem['line_total'],
                 ]);
             }
@@ -298,6 +305,9 @@ class SalesService
 
             $attributesToUpdate = [
                 'status' => SaleStatus::Cancelled,
+                'paid_total' => 0,
+                'balance_due' => 0,
+                'due_date' => null,
             ];
 
             if ($this->supportsHeldSaleCancellationAudit()) {
@@ -534,6 +544,8 @@ class SalesService
             }
         }
 
+        $posTestMode = in_array($sale->sales_channel, [null, 'pos'], true)
+            && (bool) $sale->company()->value('pos_test_mode');
         foreach ($sale->items as $item) {
             $product = Product::query()->find($item->product_id);
 
@@ -552,6 +564,7 @@ class SalesService
                     'Sale completed',
                     $sale->notes,
                     isset($attributes['completed_at']) && $attributes['completed_at'] instanceof Carbon ? $attributes['completed_at'] : now(),
+                    allowNegativeStockOverride: $posTestMode,
                 );
             }
         }
@@ -568,8 +581,16 @@ class SalesService
             ]);
         }
 
+        $paymentTermsDays = $customer && ! $customer->is_walk_in ? ($customer->payment_terms_days ?? 7) : null;
+        $dueDate = $balanceDue > 0 && $paymentTermsDays !== null
+            ? Carbon::parse($sale->sale_date)->addDays($paymentTermsDays)->toDateString()
+            : null;
+
         $sale->forceFill([
             'status' => SaleStatus::Completed,
+            'customer_tax_number' => $customer?->tax_number,
+            'payment_terms_days' => $paymentTermsDays,
+            'due_date' => $dueDate,
             'paid_total' => $this->formatDecimal($paymentTotal),
             'balance_due' => $this->formatDecimal($balanceDue),
             'completed_at' => $attributes['completed_at'] ?? now(),
@@ -600,6 +621,7 @@ class SalesService
     {
         return collect($items)->map(function (array $item) use ($companyId, $branchId): array {
             $product = Product::query()
+                ->with('company:id,default_tax_rate')
                 ->where('company_id', $companyId)
                 ->find($item['product_id'] ?? null);
 
@@ -612,7 +634,7 @@ class SalesService
             $unitPrice = $this->normalizeNonNegativeDecimal($item['unit_price'] ?? $branchPrice?->selling_price ?? $product->selling_price, 'Unit price');
             $unitCost = $this->normalizeNonNegativeDecimal($item['unit_cost'] ?? $branchPrice?->cost_price ?? $product->cost_price, 'Unit cost');
             $discountAmount = $this->normalizeNonNegativeDecimal($item['discount_amount'] ?? 0, 'Discount amount');
-            $taxRate = $this->normalizeNonNegativeDecimal($item['tax_rate'] ?? $product->tax_rate ?? 0, 'Tax rate');
+            $taxRate = $this->normalizeNonNegativeDecimal($product->effectiveTaxRate(), 'Tax rate');
             $lineSubtotal = round($quantity * $unitPrice, 4);
             $taxBase = round($lineSubtotal - $discountAmount, 4);
             $taxAmount = round($taxBase * ($taxRate / 100), 4);
@@ -627,6 +649,7 @@ class SalesService
                 'discount_amount' => $this->formatDecimal($discountAmount),
                 'tax_rate' => $this->formatDecimal($taxRate),
                 'tax_amount' => $this->formatDecimal($taxAmount),
+                'tax_category' => ($product->tax_category ?? TaxCategory::StandardRated)->value,
                 'line_subtotal' => $lineSubtotal,
                 'line_total' => $this->formatDecimal($lineTotal),
             ];

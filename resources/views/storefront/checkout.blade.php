@@ -1,6 +1,6 @@
 @extends('layouts.storefront')
 
-@section('title', 'Checkout | Island Thrift')
+@section('title', 'Checkout | Moscow Traders Wholesale')
 
 @section('content')
 <section class="store-container pt-10 sm:pt-14">
@@ -42,7 +42,7 @@
                     <span>Total</span>
                     <strong class="text-xl">{{ $items->first()['product']->branchPrices->first()?->currency ?? 'MVR' }} {{ number_format($subtotal, 2) }}</strong>
                 </div>
-                <p class="mt-3 text-xs font-semibold text-slate-400">Prices include GST.</p>
+                <p class="mt-3 text-xs font-semibold text-slate-400">Prices include GST where applicable.</p>
             </aside>
         </div>
     @else
@@ -69,7 +69,7 @@
                         @foreach($deliveryMethods as $key => $label)
                             <label class="store-choice">
                                 <input type="radio" name="delivery_method" value="{{ $key }}" @checked(old('delivery_method', array_key_first($deliveryMethods)) === $key)>
-                                <span><strong>{{ $label }}</strong>@if($key === 'pickup')<small>Collect from Island Thrift in Himmafushi.</small>@else<small>Delivery is available throughout Himmafushi and to Malé. We will contact you to confirm the details.</small>@endif</span>
+                                <span><strong>{{ $label }}</strong>@if($key === 'pickup')<small>Collect from Moscow Traders Wholesale.</small>@else<small>We will contact you to confirm delivery details.</small>@endif</span>
                             </label>
                         @endforeach
                     </div>
@@ -104,7 +104,7 @@
                     <span>Total</span>
                     <strong class="text-xl">{{ $items->first()['product']->branchPrices->first()?->currency ?? 'MVR' }} {{ number_format($subtotal, 2) }}</strong>
                 </div>
-                <p class="mt-3 text-xs font-semibold text-slate-400">Prices include GST.</p>
+                <p class="mt-3 text-xs font-semibold text-slate-400">Prices include GST where applicable.</p>
                 <p class="mt-2 text-xs text-slate-400">Delivery charge: MVR 0.00. Any future charges can be configured before activation.</p>
                 <button class="store-hero-button mt-6 w-full justify-center">Place Order</button>
             </aside>

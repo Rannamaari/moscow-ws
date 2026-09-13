@@ -102,7 +102,7 @@ class TelegramSalesBotService
         $command = strtolower(strtok($rawCommand, '@') ?: '');
 
         match ($command) {
-            '/start', '/help' => $this->send($chatId, "Island Thrift Sales Bot\n\n/today — today's sales summary\n/sales — latest 10 sales\n/sale SAL-000001 — full sale details"),
+            '/start', '/help' => $this->send($chatId, "Moscow Traders Wholesale Sales Bot\n\n/today — today's sales summary\n/sales — latest 10 sales\n/sale SAL-000001 — full sale details"),
             '/today' => $this->send($chatId, $this->todaySummary()),
             '/sales' => $this->send($chatId, $this->recentSales()),
             '/sale' => $this->send($chatId, $this->saleLookup($argument)),
@@ -112,7 +112,7 @@ class TelegramSalesBotService
 
     public function test(): int
     {
-        return $this->broadcast('✅ Island Thrift Telegram sales notifications are working.');
+        return $this->broadcast('✅ Moscow Traders Wholesale Telegram sales notifications are working.');
     }
 
     /** @return array<string, mixed> */

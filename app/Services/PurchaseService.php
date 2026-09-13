@@ -5,8 +5,10 @@ namespace App\Services;
 use App\Enums\PurchaseStatus;
 use App\Enums\StockMovementType;
 use App\Enums\SupplierTransactionType;
+use App\Enums\TaxCategory;
 use App\Exceptions\TransactionException;
 use App\Models\Branch;
+use App\Models\InventoryBalance;
 use App\Models\Product;
 use App\Models\ProductBranchPrice;
 use App\Models\Purchase;
@@ -54,6 +56,7 @@ class PurchaseService
                 $lineItems->sum('line_subtotal'),
                 $lineItems->sum('discount_amount'),
                 $lineItems->sum('tax_amount'),
+                $lineItems->sum('tax_to_add'),
                 $attributes['shipping_total'] ?? 0,
                 $attributes['other_cost_total'] ?? 0,
             );
@@ -94,6 +97,9 @@ class PurchaseService
                     'discount_amount' => $lineItem['discount_amount'],
                     'tax_rate' => $lineItem['tax_rate'],
                     'tax_amount' => $lineItem['tax_amount'],
+                    'tax_category' => $lineItem['tax_category'],
+                    'price_includes_tax' => $lineItem['price_includes_tax'],
+                    'input_tax_claimable' => $lineItem['input_tax_claimable'],
                     'line_total' => $lineItem['line_total'],
                 ]);
             }
@@ -158,6 +164,7 @@ class PurchaseService
                 $lineItems->sum('line_subtotal'),
                 $lineItems->sum('discount_amount'),
                 $lineItems->sum('tax_amount'),
+                $lineItems->sum('tax_to_add'),
                 $attributes['shipping_total'] ?? 0,
                 $attributes['other_cost_total'] ?? 0,
             );
@@ -196,6 +203,9 @@ class PurchaseService
                     'discount_amount' => $lineItem['discount_amount'],
                     'tax_rate' => $lineItem['tax_rate'],
                     'tax_amount' => $lineItem['tax_amount'],
+                    'tax_category' => $lineItem['tax_category'],
+                    'price_includes_tax' => $lineItem['price_includes_tax'],
+                    'input_tax_claimable' => $lineItem['input_tax_claimable'],
                     'line_total' => $lineItem['line_total'],
                 ]);
             }
@@ -248,6 +258,7 @@ class PurchaseService
                 $item->forceFill([
                     'received_quantity' => $this->formatDecimal((float) $item->received_quantity + $numericQuantity),
                 ])->save();
+                $inventoryUnitCost = $this->inventoryUnitCost($item);
 
                 $this->inventoryService->increaseWithReference(
                     $purchase->company_id,
@@ -258,21 +269,14 @@ class PurchaseService
                     Purchase::class,
                     $purchase->id,
                     $purchase->purchase_number,
-                    (float) $item->unit_cost,
+                    $inventoryUnitCost,
                     $receivedBy,
                     'Purchase receipt',
                     $purchase->notes,
                     $occurredAt,
                 );
 
-                ProductBranchPrice::query()->updateOrCreate(
-                    ['company_id' => $purchase->company_id, 'branch_id' => $purchase->branch_id, 'product_id' => $item->product_id],
-                    [
-                        'currency' => $purchase->currency,
-                        'cost_price' => $item->unit_cost,
-                        'selling_price' => Product::query()->whereKey($item->product_id)->value('selling_price'),
-                    ],
-                );
+                $this->syncProductAverageCosts($purchase, $item->product_id);
 
                 $didReceive = true;
             }
@@ -344,7 +348,7 @@ class PurchaseService
 
     public function cancelPurchase(string $purchaseId, ?string $cancelledBy = null, ?string $notes = null): Purchase
     {
-        return DB::transaction(function () use ($purchaseId, $cancelledBy, $notes): Purchase {
+        return DB::transaction(function () use ($purchaseId, $notes): Purchase {
             $purchase = Purchase::query()
                 ->lockForUpdate()
                 ->with(['items', 'payments'])
@@ -417,8 +421,12 @@ class PurchaseService
                     throw new TransactionException('Cannot return more than the quantity previously received.');
                 }
 
-                $taxAmount = round(($numericQuantity * (float) $purchaseItem->unit_cost) * ((float) $purchaseItem->tax_rate / 100), 4);
-                $lineTotal = round(($numericQuantity * (float) $purchaseItem->unit_cost) + $taxAmount, 4);
+                $taxBase = round($numericQuantity * (float) $purchaseItem->unit_cost, 4);
+                $taxRate = (float) $purchaseItem->tax_rate;
+                $taxAmount = round($purchaseItem->price_includes_tax && $taxRate > 0
+                    ? $taxBase * ($taxRate / (100 + $taxRate))
+                    : $taxBase * ($taxRate / 100), 4);
+                $lineTotal = round($purchaseItem->price_includes_tax ? $taxBase : $taxBase + $taxAmount, 4);
 
                 $lineItems->push([
                     'purchase_item' => $purchaseItem,
@@ -470,7 +478,7 @@ class PurchaseService
                     PurchaseReturn::class,
                     $purchaseReturn->id,
                     $purchaseReturn->purchase_return_number,
-                    $lineItem['unit_cost'],
+                    $this->inventoryUnitCost($lineItem['purchase_item']),
                     $attributes['created_by'] ?? null,
                     'Purchase return',
                     $attributes['notes'] ?? null,
@@ -514,11 +522,23 @@ class PurchaseService
             $branchCost = $branchId ? ProductBranchPrice::query()->where('branch_id', $branchId)->where('product_id', $product->id)->value('cost_price') : null;
             $unitCost = $this->normalizeNonNegativeDecimal($item['unit_cost'] ?? $branchCost ?? $product->cost_price, 'Unit cost');
             $discountAmount = $this->normalizeNonNegativeDecimal($item['discount_amount'] ?? 0, 'Discount amount');
-            $taxRate = $this->normalizeNonNegativeDecimal($item['tax_rate'] ?? 0, 'Tax rate');
+            $taxCategory = TaxCategory::tryFrom((string) ($item['tax_category'] ?? ''))
+                ?? $product->tax_category
+                ?? TaxCategory::StandardRated;
+            $taxRate = $taxCategory === TaxCategory::StandardRated
+                ? $this->normalizeNonNegativeDecimal($item['tax_rate'] ?? $product->effectiveTaxRate(), 'Tax rate')
+                : 0.0;
+            $priceIncludesTax = (bool) ($item['price_includes_tax'] ?? false);
+            $inputTaxClaimable = $taxCategory === TaxCategory::StandardRated
+                && $taxRate > 0
+                && (bool) ($item['input_tax_claimable'] ?? true);
             $lineSubtotal = round($orderedQuantity * $unitCost, 4);
             $taxBase = round($lineSubtotal - $discountAmount, 4);
-            $taxAmount = round($taxBase * ($taxRate / 100), 4);
-            $lineTotal = round($taxBase + $taxAmount, 4);
+            $taxAmount = round($priceIncludesTax && $taxRate > 0
+                ? $taxBase * ($taxRate / (100 + $taxRate))
+                : $taxBase * ($taxRate / 100), 4);
+            $taxToAdd = $priceIncludesTax ? 0.0 : $taxAmount;
+            $lineTotal = round($taxBase + $taxToAdd, 4);
 
             return [
                 'product' => $product,
@@ -528,15 +548,99 @@ class PurchaseService
                 'discount_amount' => $this->formatDecimal($discountAmount),
                 'tax_rate' => $this->formatDecimal($taxRate),
                 'tax_amount' => $this->formatDecimal($taxAmount),
+                'tax_category' => $taxCategory->value,
+                'price_includes_tax' => $priceIncludesTax,
+                'input_tax_claimable' => $inputTaxClaimable,
+                'tax_to_add' => $taxToAdd,
                 'line_subtotal' => $lineSubtotal,
                 'line_total' => $this->formatDecimal($lineTotal),
             ];
         });
     }
 
-    private function calculateTotals(float|int|string $subtotal, float|int|string $discount, float|int|string $tax, float|int|string $shipping, float|int|string $other): array
+    private function inventoryUnitCost(PurchaseItem $item): float
     {
-        $grandTotal = round((float) $subtotal - (float) $discount + (float) $tax + (float) $shipping + (float) $other, 4);
+        $unitCost = (float) $item->unit_cost;
+        $taxRate = (float) $item->tax_rate;
+
+        if ($taxRate <= 0) {
+            return $unitCost;
+        }
+
+        if ($item->price_includes_tax && $item->input_tax_claimable) {
+            return round($unitCost / (1 + ($taxRate / 100)), 4);
+        }
+
+        if (! $item->price_includes_tax && ! $item->input_tax_claimable) {
+            return round($unitCost * (1 + ($taxRate / 100)), 4);
+        }
+
+        return $unitCost;
+    }
+
+    private function syncProductAverageCosts(Purchase $purchase, string $productId): void
+    {
+        $product = Product::query()->lockForUpdate()->findOrFail($productId);
+        $companyBalances = InventoryBalance::query()
+            ->where('company_id', $purchase->company_id)
+            ->where('product_id', $productId)
+            ->where('quantity', '>', 0)
+            ->get();
+        $companyAverage = $this->weightedAverageCost($companyBalances, (float) $product->cost_price);
+
+        $product->forceFill(['cost_price' => $this->formatDecimal($companyAverage)])->save();
+
+        if (! $purchase->branch_id) {
+            return;
+        }
+
+        $branchPrice = ProductBranchPrice::query()
+            ->where('company_id', $purchase->company_id)
+            ->where('branch_id', $purchase->branch_id)
+            ->where('product_id', $productId)
+            ->lockForUpdate()
+            ->first();
+        $branchWarehouseIds = Warehouse::query()
+            ->where('company_id', $purchase->company_id)
+            ->where('branch_id', $purchase->branch_id)
+            ->pluck('id');
+        $branchBalances = InventoryBalance::query()
+            ->where('company_id', $purchase->company_id)
+            ->where('product_id', $productId)
+            ->whereIn('warehouse_id', $branchWarehouseIds)
+            ->where('quantity', '>', 0)
+            ->get();
+        $branchAverage = $this->weightedAverageCost(
+            $branchBalances,
+            (float) ($branchPrice?->cost_price ?? $companyAverage),
+        );
+
+        ProductBranchPrice::query()->updateOrCreate(
+            ['company_id' => $purchase->company_id, 'branch_id' => $purchase->branch_id, 'product_id' => $productId],
+            [
+                'currency' => $purchase->currency,
+                'cost_price' => $this->formatDecimal($branchAverage),
+                'selling_price' => $branchPrice?->selling_price ?? $product->selling_price,
+            ],
+        );
+    }
+
+    private function weightedAverageCost(Collection $balances, float $fallbackCost): float
+    {
+        $quantity = (float) $balances->sum(fn (InventoryBalance $balance): float => (float) $balance->quantity);
+
+        if ($quantity <= 0) {
+            return round($fallbackCost, 4);
+        }
+
+        $inventoryValue = (float) $balances->sum(fn (InventoryBalance $balance): float => (float) $balance->quantity * (float) ($balance->average_cost ?? $fallbackCost));
+
+        return round($inventoryValue / $quantity, 4);
+    }
+
+    private function calculateTotals(float|int|string $subtotal, float|int|string $discount, float|int|string $tax, float|int|string $taxToAdd, float|int|string $shipping, float|int|string $other): array
+    {
+        $grandTotal = round((float) $subtotal - (float) $discount + (float) $taxToAdd + (float) $shipping + (float) $other, 4);
 
         return [
             'subtotal' => $this->formatDecimal($subtotal),

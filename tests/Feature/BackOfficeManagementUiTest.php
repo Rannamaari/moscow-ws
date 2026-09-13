@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Enums\StockMovementType;
 use App\Filament\Resources\Products\Pages\CreateProduct;
 use App\Filament\Resources\Products\Pages\EditProduct;
+use App\Filament\Resources\Purchases\Pages\CreatePurchase;
+use App\Filament\Resources\Purchases\Pages\EditPurchase;
 use App\Filament\Resources\Purchases\Pages\ViewPurchase;
 use App\Models\Company;
 use App\Models\InventoryBalance;
@@ -128,12 +130,13 @@ class BackOfficeManagementUiTest extends TestCase
     public function authorized_admin_can_open_branch_receipt_settings(): void
     {
         $this->seed(DatabaseSeeder::class);
-        $admin = User::query()->where('email', 'admin@islandthrift.local')->firstOrFail();
+        $admin = User::query()->where('email', 'admin@moscowtraders.local')->firstOrFail();
 
         $this->actingAs($admin)
             ->get('/admin/receipt-settings')
             ->assertOk()
-            ->assertSee('Branch Receipt Settings');
+            ->assertSee('Business Settings')
+            ->assertSee('TEST on POS');
     }
 
     #[Test]
@@ -227,6 +230,176 @@ class BackOfficeManagementUiTest extends TestCase
             ->get('/admin/purchases/create')
             ->assertOk()
             ->assertSee('Purchase Order');
+    }
+
+    #[Test]
+    public function purchase_order_form_previews_line_and_grand_totals_from_entered_values(): void
+    {
+        $warehouse = Warehouse::factory()->create();
+        $user = $this->userWithRole('admin', $warehouse);
+        $supplier = Supplier::factory()->create(['company_id' => $warehouse->company_id]);
+        $product = Product::factory()->create([
+            'company_id' => $warehouse->company_id,
+            'unit_id' => Unit::factory()->create()->id,
+            'cost_price' => 100,
+            'tax_category' => 'standard_rated',
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(CreatePurchase::class)
+            ->fillForm([
+                'supplier_id' => $supplier->id,
+                'warehouse_id' => $warehouse->id,
+                'status' => 'ordered',
+                'purchase_date' => now()->toDateString(),
+                'shipping_total' => 5,
+                'other_cost_total' => 3,
+                'items' => [[
+                    'product_id' => $product->id,
+                    'ordered_quantity' => 2,
+                    'unit_cost' => 100,
+                    'discount_amount' => 0,
+                    'tax_rate' => 8,
+                    'tax_category' => 'standard_rated',
+                    'price_includes_tax' => false,
+                    'input_tax_claimable' => true,
+                ]],
+            ])
+            ->assertSee('216.00')
+            ->assertSee('224.0000');
+    }
+
+    #[Test]
+    public function purchase_order_view_shows_the_automatically_calculated_total_gst(): void
+    {
+        $warehouse = Warehouse::factory()->create();
+        $user = $this->userWithRole('admin', $warehouse);
+        $supplier = Supplier::factory()->create(['company_id' => $warehouse->company_id]);
+        $product = Product::factory()->create([
+            'company_id' => $warehouse->company_id,
+            'unit_id' => Unit::factory()->create()->id,
+            'cost_price' => 100,
+            'tax_category' => 'standard_rated',
+        ]);
+        $purchase = app(PurchaseService::class)->createPurchase(
+            $warehouse->company_id,
+            $warehouse->id,
+            $supplier->id,
+            [[
+                'product_id' => $product->id,
+                'ordered_quantity' => 2,
+                'unit_cost' => 100,
+                'discount_amount' => 0,
+                'tax_rate' => 8,
+                'tax_category' => 'standard_rated',
+                'price_includes_tax' => false,
+                'input_tax_claimable' => true,
+            ]],
+            ['branch_id' => $warehouse->branch_id],
+        );
+
+        $this->assertSame('16.0000', $purchase->tax_total);
+
+        Livewire::actingAs($user)
+            ->test(ViewPurchase::class, ['record' => $purchase->id])
+            ->assertSee('Purchase Totals')
+            ->assertSee('Automatically calculated from the saved purchase lines.')
+            ->assertSee('Total GST')
+            ->assertSee('16.00');
+    }
+
+    #[Test]
+    public function purchase_can_be_saved_and_received_into_inventory_in_one_step(): void
+    {
+        $warehouse = Warehouse::factory()->create();
+        $user = $this->userWithRole('admin', $warehouse);
+        $supplier = Supplier::factory()->create(['company_id' => $warehouse->company_id]);
+        $product = Product::factory()->create([
+            'company_id' => $warehouse->company_id,
+            'unit_id' => Unit::factory()->create()->id,
+            'name' => 'Immediate Receipt Product',
+            'track_inventory' => true,
+            'tax_category' => 'exempt',
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(CreatePurchase::class)
+            ->fillForm([
+                'supplier_id' => $supplier->id,
+                'warehouse_id' => $warehouse->id,
+                'status' => 'receive_now',
+                'purchase_date' => now()->toDateString(),
+                'shipping_total' => 0,
+                'other_cost_total' => 0,
+                'items' => [[
+                    'product_id' => $product->id,
+                    'ordered_quantity' => 3,
+                    'unit_cost' => 10,
+                    'discount_amount' => 0,
+                    'tax_rate' => 0,
+                    'tax_category' => 'exempt',
+                    'price_includes_tax' => false,
+                    'input_tax_claimable' => false,
+                ]],
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $purchase = Purchase::query()->latest('created_at')->firstOrFail();
+
+        $this->assertSame('received', $purchase->status->value);
+        $this->assertSame('3.0000', $purchase->items->firstOrFail()->received_quantity);
+        $this->assertDatabaseHas('inventory_balances', [
+            'warehouse_id' => $warehouse->id,
+            'product_id' => $product->id,
+            'quantity' => '3.0000',
+        ]);
+        Livewire::actingAs($user)
+            ->test(ViewPurchase::class, ['record' => $purchase->id])
+            ->assertSee('Immediate Receipt Product')
+            ->assertSee('Fully received into inventory.');
+    }
+
+    #[Test]
+    public function purchase_edit_form_loads_saved_items_and_saves_a_corrected_unit_cost(): void
+    {
+        $warehouse = Warehouse::factory()->create();
+        $user = $this->userWithRole('admin', $warehouse);
+        $supplier = Supplier::factory()->create(['company_id' => $warehouse->company_id]);
+        $product = Product::factory()->create([
+            'company_id' => $warehouse->company_id,
+            'unit_id' => Unit::factory()->create()->id,
+            'name' => 'Price Correction Product',
+            'tax_category' => 'exempt',
+        ]);
+        $purchase = app(PurchaseService::class)->createPurchase(
+            $warehouse->company_id,
+            $warehouse->id,
+            $supplier->id,
+            [[
+                'product_id' => $product->id,
+                'ordered_quantity' => 1,
+                'unit_cost' => 46.30,
+                'tax_category' => 'exempt',
+            ]],
+            ['branch_id' => $warehouse->branch_id],
+        );
+
+        $component = Livewire::actingAs($user)->test(EditPurchase::class, ['record' => $purchase->id]);
+        $items = $component->get('data.items');
+        $itemKey = array_key_first($items);
+
+        $this->assertCount(1, $items);
+        $this->assertSame($product->id, $items[$itemKey]['product_id']);
+        $this->assertSame(46.3, $items[$itemKey]['unit_cost']);
+
+        $component
+            ->set("data.items.{$itemKey}.unit_cost", 25)
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('25.0000', $purchase->fresh()->subtotal);
+        $this->assertSame('25.0000', $purchase->items()->firstOrFail()->unit_cost);
     }
 
     #[Test]

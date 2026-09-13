@@ -21,6 +21,8 @@ class CustomersTable
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('phone')->toggleable(),
                 TextColumn::make('email')->toggleable(),
+                TextColumn::make('tax_number')->label('GST Number')->searchable()->toggleable(),
+                TextColumn::make('payment_terms_days')->label('Terms')->formatStateUsing(fn ($state): string => 'Due '.($state ?? 7)),
                 TextColumn::make('credit_limit'),
                 IconColumn::make('is_walk_in')->boolean(),
                 IconColumn::make('is_active')->boolean(),

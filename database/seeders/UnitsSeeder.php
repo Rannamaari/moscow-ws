@@ -22,6 +22,9 @@ class UnitsSeeder extends Seeder
             ['name' => 'Liter', 'short_name' => 'L', 'precision' => 3],
             ['name' => 'Milliliter', 'short_name' => 'ml', 'precision' => 3],
             ['name' => 'Meter', 'short_name' => 'm', 'precision' => 3],
+            ['name' => 'Case', 'short_name' => 'case', 'precision' => 0],
+            ['name' => 'Bag', 'short_name' => 'bag', 'precision' => 0],
+            ['name' => 'Jar', 'short_name' => 'jar', 'precision' => 0],
         ];
 
         foreach ($units as $unit) {

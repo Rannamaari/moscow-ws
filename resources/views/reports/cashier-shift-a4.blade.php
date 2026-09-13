@@ -61,6 +61,7 @@
             <tr><td>Subtotal</td><td class="num">{{ $currency }} {{ number_format((float) ($report['subtotal'] ?? 0), 2) }}</td></tr>
             <tr><td>Discounts</td><td class="num">{{ $currency }} {{ number_format((float) ($report['discount_total'] ?? 0), 2) }}</td></tr>
             <tr><td>Tax</td><td class="num">{{ $currency }} {{ number_format((float) ($report['tax_total'] ?? 0), 2) }}</td></tr>
+            <tr><td>Credit payments collected ({{ $report['credit_collections_count'] ?? 0 }})</td><td class="num">{{ $currency }} {{ number_format((float) ($report['credit_collections_total'] ?? 0), 2) }}</td></tr>
             <tr class="total"><td>Outstanding credit</td><td class="num">{{ $currency }} {{ number_format((float) ($report['balance_due'] ?? 0), 2) }}</td></tr>
         </tbody>
     </table>
@@ -83,7 +84,7 @@
     @if ($cashierShift->opening_notes || $cashierShift->closing_notes)
         <div class="note"><strong>Shift notes</strong><br>@if ($cashierShift->opening_notes) Opening: {{ $cashierShift->opening_notes }}<br>@endif @if ($cashierShift->closing_notes) Closing: {{ $cashierShift->closing_notes }}@endif</div>
     @endif
-    <footer class="footer">Generated from {{ config('app.name', 'Island Thrift') }} cashier shift records.</footer>
+    <footer class="footer">Generated from {{ config('app.name', 'Moscow Traders Wholesale') }} cashier shift records.</footer>
 </main>
 </body>
 </html>

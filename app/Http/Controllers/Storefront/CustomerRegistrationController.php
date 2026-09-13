@@ -73,7 +73,7 @@ class CustomerRegistrationController extends Controller
             'expires_at' => now()->addMinutes(5),
             'request_ip' => $request->ip(),
         ]);
-        $result = $sms->send($phone, "Your Island Thrift verification code is {$code}. It expires in 5 minutes.", $company->id, null, 'customer_otp');
+        $result = $sms->send($phone, "Your Moscow Traders Wholesale verification code is {$code}. It expires in 5 minutes.", $company->id, null, 'customer_otp');
 
         if (! $result['successful']) {
             $challenge->delete();
@@ -127,7 +127,7 @@ class CustomerRegistrationController extends Controller
                 [
                     'code' => Customer::query()->where('company_id', $challenge->company_id)->where('phone', $challenge->phone)->value('code') ?: 'WEB-'.Str::upper(Str::random(10)),
                     'name' => $pending['name'],
-                    'city' => 'Himmafushi',
+                    'city' => $company->city,
                     'opening_balance' => 0,
                     'is_active' => true,
                     'phone_verified_at' => now(),

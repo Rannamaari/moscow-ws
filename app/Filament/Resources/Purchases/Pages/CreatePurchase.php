@@ -31,14 +31,16 @@ class CreatePurchase extends CreateRecord
             ]);
         }
 
-        return app(PurchaseService::class)->createPurchase(
+        $receiveImmediately = ($data['status'] ?? null) === 'receive_now';
+        $purchaseService = app(PurchaseService::class);
+        $purchase = $purchaseService->createPurchase(
             $companyId,
             $warehouseId,
             $supplierId,
             $data['items'] ?? [],
             [
                 'branch_id' => AdminSupport::authorizedWarehouseQuery()->whereKey($warehouseId)->value('branch_id'),
-                'status' => $data['status'] ?? 'ordered',
+                'status' => $receiveImmediately ? 'ordered' : ($data['status'] ?? 'ordered'),
                 'purchase_date' => $data['purchase_date'] ?? now()->toDateString(),
                 'expected_date' => $data['expected_date'] ?? null,
                 'supplier_invoice_number' => $data['supplier_invoice_number'] ?? null,
@@ -47,6 +49,21 @@ class CreatePurchase extends CreateRecord
                 'notes' => $data['notes'] ?? null,
                 'created_by' => auth()->id(),
             ],
+        );
+
+        if (! $receiveImmediately) {
+            return $purchase;
+        }
+
+        $quantities = $purchase->items->mapWithKeys(fn ($item): array => [
+            $item->id => $item->ordered_quantity,
+        ])->all();
+
+        return $purchaseService->receivePurchase(
+            $purchase->id,
+            $quantities,
+            (string) auth()->id(),
+            now(),
         );
     }
 }

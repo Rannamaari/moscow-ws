@@ -22,6 +22,8 @@ class CompanyFactory extends Factory
             'legal_name' => fake()->company().' LLC',
             'registration_number' => fake()->optional()->numerify('REG-#####'),
             'tax_number' => fake()->optional()->numerify('TAX-#####'),
+            'default_tax_rate' => 0,
+            'gst_filing_frequency' => 'quarterly',
             'phone' => fake()->optional()->phoneNumber(),
             'email' => fake()->optional()->companyEmail(),
             'address' => fake()->optional()->address(),
@@ -30,6 +32,7 @@ class CompanyFactory extends Factory
             'timezone' => 'Indian/Maldives',
             'currency' => 'MVR',
             'is_active' => true,
+            'pos_test_mode' => false,
         ];
     }
 

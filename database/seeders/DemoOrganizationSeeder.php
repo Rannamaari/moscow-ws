@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Branch;
 use App\Models\Company;
+use App\Models\Customer;
 use App\Models\User;
 use App\Models\Warehouse;
 use Illuminate\Database\Seeder;
@@ -16,11 +17,13 @@ class DemoOrganizationSeeder extends Seeder
     public function run(): void
     {
         $company = Company::query()->updateOrCreate(
-            ['name' => 'Island Thrift Demo Company'],
+            ['name' => 'Moscow Traders Wholesale'],
             [
-                'legal_name' => 'Island Thrift Demo Company',
+                'legal_name' => 'Moscow Traders (Wholesale)',
+                'receipt_shop_name' => 'Moscow Traders Wholesale',
                 'timezone' => 'Indian/Maldives',
                 'currency' => 'MVR',
+                'default_tax_rate' => 0,
                 'is_active' => true,
             ]
         );
@@ -28,7 +31,7 @@ class DemoOrganizationSeeder extends Seeder
         $branch = Branch::query()->updateOrCreate(
             ['company_id' => $company->id, 'code' => 'MAIN'],
             [
-                'name' => 'Main Branch',
+                'name' => 'Moscow Traders Wholesale',
                 'city' => 'Male',
                 'is_active' => true,
             ]
@@ -48,19 +51,19 @@ class DemoOrganizationSeeder extends Seeder
             'online_branch_id' => $branch->id,
             'online_warehouse_id' => $warehouse->id,
             'website_enabled' => true,
-            'city' => 'Himmafushi',
+            'city' => null,
             'country' => 'Maldives',
-            'website_delivery_methods' => ['pickup' => 'Store Pickup', 'local_delivery' => 'Himmafushi / Malé Delivery'],
+            'website_delivery_methods' => ['pickup' => 'Store Pickup', 'local_delivery' => 'Local Delivery'],
             'website_payment_methods' => ['cash' => 'Cash / Pay on Collection', 'bank_transfer' => 'Bank Transfer'],
         ]);
 
         $user = User::query()->updateOrCreate(
-            ['email' => 'admin@islandthrift.local'],
+            ['email' => 'admin@moscowtraders.local'],
             [
                 'company_id' => $company->id,
                 'branch_id' => $branch->id,
                 'warehouse_id' => $warehouse->id,
-                'name' => 'Island Thrift Admin',
+                'name' => 'Moscow Traders Admin',
                 'password' => 'password',
                 'is_active' => true,
             ]
@@ -69,17 +72,27 @@ class DemoOrganizationSeeder extends Seeder
         $user->syncRoles(['super-admin']);
 
         $cashier = User::query()->updateOrCreate(
-            ['email' => 'cashier@islandthrift.local'],
+            ['email' => 'cashier@moscowtraders.local'],
             [
                 'company_id' => $company->id,
                 'branch_id' => $branch->id,
                 'warehouse_id' => $warehouse->id,
-                'name' => 'Island Thrift Cashier',
+                'name' => 'Moscow Traders Cashier',
                 'password' => 'password',
                 'is_active' => true,
             ]
         );
 
         $cashier->syncRoles(['cashier']);
+
+        Customer::query()->updateOrCreate(
+            ['company_id' => $company->id, 'code' => 'WALK-IN'],
+            [
+                'name' => 'Walk-in Customer',
+                'credit_limit' => null,
+                'is_walk_in' => true,
+                'is_active' => true,
+            ]
+        );
     }
 }

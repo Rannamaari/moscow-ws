@@ -10,7 +10,7 @@ use stdClass;
 
 class BenchmarkProductsCommand extends Command
 {
-    protected $signature = 'island-thrift:benchmark-products {--company= : Company UUID to benchmark}';
+    protected $signature = 'moscow-traders-wholesale:benchmark-products {--company= : Company UUID to benchmark}';
 
     protected $description = 'Benchmark core product catalog lookup queries.';
 
@@ -18,7 +18,7 @@ class BenchmarkProductsCommand extends Command
     {
         $company = $this->option('company')
             ? Company::query()->find($this->option('company'))
-            : Company::query()->where('name', 'Island Thrift Demo Company')->first();
+            : Company::query()->where('name', 'Moscow Traders Wholesale')->first();
 
         if (! $company) {
             $this->error('Benchmark company not found.');

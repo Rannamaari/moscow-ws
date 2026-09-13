@@ -21,7 +21,7 @@ class ReceiptSettings extends Page
 
     protected static ?string $navigationLabel = 'Receipt Settings';
 
-    protected static ?string $title = 'Branch Receipt Settings';
+    protected static ?string $title = 'Business Settings';
 
     protected string $view = 'filament.pages.receipt-settings';
 
@@ -54,6 +54,33 @@ class ReceiptSettings extends Page
     {
         return $schema
             ->components([
+                Section::make('Tax Settings')
+                    ->description('Company GST registration and filing defaults used by receipts, purchases, sales, and MIRA reports.')
+                    ->schema([
+                        TextInput::make('tax_number')
+                            ->label('GST Registration Number')
+                            ->helperText('Stored in Settings and printed/reported from here; it is not hard-coded.')
+                            ->maxLength(255),
+                        TextInput::make('default_tax_rate')
+                            ->label('GST Rate')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(100)
+                            ->suffix('%')
+                            ->required(),
+                        Select::make('gst_filing_frequency')
+                            ->label('GST Filing Frequency')
+                            ->options([
+                                'monthly' => 'Monthly',
+                                'quarterly' => 'Quarterly',
+                            ])
+                            ->required(),
+                        Toggle::make('pos_test_mode')
+                            ->label('TEST on POS')
+                            ->helperText('Allows POS sales when stock is zero. Turn this off for normal stock enforcement.')
+                            ->default(false)
+                            ->inline(false),
+                    ]),
                 Section::make('Receipt Identity')
                     ->description('Each branch can have its own receipt identity. Its branch address and phone are printed from the Branch record.')
                     ->schema([
@@ -103,6 +130,12 @@ class ReceiptSettings extends Page
 
         abort_unless($company, 403);
         $state = $this->form->getState();
+        $company->update([
+            'tax_number' => $state['tax_number'] ?: null,
+            'default_tax_rate' => $state['default_tax_rate'],
+            'gst_filing_frequency' => $state['gst_filing_frequency'],
+            'pos_test_mode' => (bool) ($state['pos_test_mode'] ?? false),
+        ]);
         $branch = Branch::query()->where('company_id', $company->id)->findOrFail($state['branch_id']);
         $branch->update([
             'receipt_shop_name' => $state['receipt_shop_name'],
@@ -114,7 +147,7 @@ class ReceiptSettings extends Page
             'receipt_show_phone' => $state['receipt_show_phone'],
         ]);
 
-        Notification::make()->title('Receipt settings saved')->success()->send();
+        Notification::make()->title('Settings saved')->success()->send();
     }
 
     public function updatedDataBranchId(?string $branchId): void
@@ -131,6 +164,10 @@ class ReceiptSettings extends Page
         $profile = app(ReceiptProfileResolver::class)->resolve($company, $branch);
 
         $this->form->fill([
+            'tax_number' => $company->tax_number,
+            'default_tax_rate' => $company->default_tax_rate,
+            'gst_filing_frequency' => $company->gst_filing_frequency ?: 'quarterly',
+            'pos_test_mode' => $company->pos_test_mode,
             'branch_id' => $branch->id,
             'receipt_shop_name' => $branch->receipt_shop_name ?: $profile['shop_name'],
             'receipt_tax_number' => $branch->receipt_tax_number ?: $profile['tax_number'],

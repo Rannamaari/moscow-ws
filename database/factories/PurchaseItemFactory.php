@@ -49,6 +49,9 @@ class PurchaseItemFactory extends Factory
             'discount_amount' => 0,
             'tax_rate' => 0,
             'tax_amount' => 0,
+            'tax_category' => 'standard_rated',
+            'price_includes_tax' => false,
+            'input_tax_claimable' => true,
             'line_total' => 50,
         ];
     }

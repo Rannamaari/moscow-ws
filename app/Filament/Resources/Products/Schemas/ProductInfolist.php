@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Products\Schemas;
 
+use App\Enums\TaxCategory;
 use App\Filament\Resources\InventoryOverview\InventoryOverviewResource;
 use App\Models\Product;
 use App\Services\InventoryQueryService;
@@ -32,7 +33,9 @@ class ProductInfolist
                                 TextEntry::make('cost_price')->money('MVR'),
                                 TextEntry::make('selling_price')->money('MVR'),
                                 TextEntry::make('wholesale_price')->money('MVR'),
-                                TextEntry::make('tax_rate'),
+                                TextEntry::make('tax_category')
+                                    ->label('GST Classification')
+                                    ->formatStateUsing(fn (TaxCategory|string|null $state): string => $state instanceof TaxCategory ? $state->label() : (TaxCategory::tryFrom((string) $state)?->label() ?? '—')),
                                 TextEntry::make('minimum_stock'),
                                 IconEntry::make('track_inventory')->boolean(),
                                 IconEntry::make('allow_negative_stock')->boolean(),

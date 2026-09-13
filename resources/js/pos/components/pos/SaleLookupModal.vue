@@ -248,6 +248,11 @@ async function submitReturn() {
                             <div class="flex flex-wrap gap-2">
                                 <button class="pos-button-secondary" @click="store.printActiveSale(undefined, 'thermal')">Thermal Receipt</button>
                                 <button class="pos-button-secondary" @click="store.printActiveSale(undefined, 'a4')">A4 Tax Invoice</button>
+                                <button
+                                    v-if="store.canReceiveCustomerPayments && store.activeSaleLookup.customer && !store.activeSaleLookup.customer.is_walk_in && Number(store.activeSaleLookup.balance_due) > 0"
+                                    class="pos-button-primary"
+                                    @click="store.openCreditPayment(store.activeSaleLookup)"
+                                >Receive Payment</button>
                                 <button v-if="canReturnSelectedSale" class="pos-button-primary" :disabled="store.loading.processingReturn" @click="submitReturn">
                                     {{ store.loading.processingReturn ? 'Processing…' : 'Return Items' }}
                                 </button>
@@ -269,7 +274,7 @@ async function submitReturn() {
                                     <p class="flex items-center justify-between"><span>Tax</span><span class="text-white">{{ store.formatMoney(store.activeSaleLookup.tax_total) }}</span></p>
                                     <p class="flex items-center justify-between font-semibold text-white"><span>Grand Total</span><span>{{ store.formatMoney(store.activeSaleLookup.grand_total) }}</span></p>
                                     <p class="flex items-center justify-between"><span>Paid</span><span class="text-white">{{ store.formatMoney(store.activeSaleLookup.paid_total) }}</span></p>
-                                    <p class="flex items-center justify-between"><span>Balance Due</span><span class="text-white">{{ store.formatMoney(store.activeSaleLookup.balance_due) }}</span></p>
+                                    <p class="flex items-center justify-between"><span>{{ store.activeSaleLookup.status === 'cancelled' ? 'Amount Due (cancelled)' : 'Balance Due' }}</span><span class="text-white">{{ store.formatMoney(store.activeSaleLookup.status === 'cancelled' ? 0 : store.activeSaleLookup.balance_due) }}</span></p>
                                 </div>
                             </div>
                         </div>

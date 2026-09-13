@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Sign In | {{ config('app.name', 'Island Thrift') }}</title>
+        <title>Sign In | {{ config('app.name', 'Moscow Traders Wholesale') }}</title>
         @vite(['resources/css/app.css'])
     </head>
     <body class="min-h-screen bg-slate-950 text-slate-100">
@@ -14,7 +14,7 @@
                 <section class="flex flex-col justify-between gap-10 p-8 md:p-12">
                     <div class="space-y-6">
                         <div class="inline-flex items-center rounded-full border border-amber-300/30 bg-amber-300/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-amber-200">
-                            Island Thrift Checkout
+                            Moscow Traders Wholesale Checkout
                         </div>
                         <div class="space-y-4">
                             <h1 class="max-w-xl font-[var(--font-display)] text-4xl font-semibold tracking-tight text-white md:text-5xl">

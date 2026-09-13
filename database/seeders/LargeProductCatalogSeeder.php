@@ -23,7 +23,7 @@ class LargeProductCatalogSeeder extends Seeder
      */
     public function run(): void
     {
-        $company = Company::query()->where('name', 'Island Thrift Demo Company')->firstOrFail();
+        $company = Company::query()->where('name', 'Moscow Traders Wholesale')->firstOrFail();
 
         $categories = Category::query()->where('company_id', $company->id)->pluck('id')->values();
         $brands = Brand::query()->where('company_id', $company->id)->pluck('id')->values();
@@ -69,7 +69,8 @@ class LargeProductCatalogSeeder extends Seeder
                     'cost_price' => number_format(5 + (($sequence % 100) / 10), 4, '.', ''),
                     'selling_price' => number_format(10 + (($sequence % 200) / 10), 4, '.', ''),
                     'wholesale_price' => number_format(9 + (($sequence % 150) / 10), 4, '.', ''),
-                    'tax_rate' => number_format(($sequence % 3) * 5, 4, '.', ''),
+                    'tax_rate' => 0,
+                    'is_taxable' => true,
                     'minimum_stock' => number_format(($sequence % 50), 4, '.', ''),
                     'allow_negative_stock' => false,
                     'track_inventory' => true,

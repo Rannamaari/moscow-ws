@@ -96,7 +96,7 @@ class CheckoutController extends Controller
                 'name' => $data['name'],
                 'email' => ($data['email'] ?? null) ?: $customer->email,
                 'address' => ($data['delivery_address'] ?? null) ?: $customer->address,
-                'city' => 'Himmafushi',
+                'city' => $company->city,
                 'is_active' => true,
             ]);
         } else {
@@ -107,7 +107,7 @@ class CheckoutController extends Controller
                 'phone' => $data['phone'],
                 'email' => $data['email'] ?? null,
                 'address' => $data['delivery_address'] ?? null,
-                'city' => 'Himmafushi',
+                'city' => $company->city,
                 'credit_limit' => null,
                 'opening_balance' => 0,
                 'is_active' => true,

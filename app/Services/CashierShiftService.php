@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\SaleStatus;
 use App\Exceptions\TransactionException;
 use App\Models\CashierShift;
+use App\Models\CustomerPayment;
 use App\Models\Sale;
 use App\Models\SalePayment;
 use App\Models\SaleReturn;
@@ -86,7 +87,7 @@ class CashierShiftService
                 ->selectRaw('COUNT(*) as sales_count, COALESCE(SUM(subtotal), 0) as subtotal, COALESCE(SUM(discount_total), 0) as discount_total, COALESCE(SUM(tax_total), 0) as tax_total, COALESCE(SUM(grand_total), 0) as grand_total, COALESCE(SUM(paid_total), 0) as paid_total, COALESCE(SUM(balance_due), 0) as balance_due')
                 ->first();
 
-            $payments = SalePayment::query()
+            $salePayments = SalePayment::query()
                 ->join('sales', 'sales.id', '=', 'sale_payments.sale_id')
                 ->where('sales.cashier_shift_id', $shift->id)
                 ->whereIn('sales.status', $saleStatuses)
@@ -99,7 +100,33 @@ class CashierShiftService
                     'amount' => $this->decimal((float) $payment->amount),
                     'tendered' => $this->decimal((float) $payment->tendered),
                     'change_due' => $this->decimal((float) $payment->change_due),
-                ])->all();
+                ]);
+
+            $creditCollections = CustomerPayment::query()
+                ->where('cashier_shift_id', $shift->id)
+                ->selectRaw('payment_method, COUNT(*) as payment_count, COALESCE(SUM(amount), 0) as amount')
+                ->groupBy('payment_method')
+                ->get();
+            $payments = $salePayments
+                ->concat($creditCollections->map(fn ($payment): array => [
+                    'method' => $payment->payment_method,
+                    'amount' => $this->decimal((float) $payment->amount),
+                    'tendered' => $this->decimal((float) $payment->amount),
+                    'change_due' => $this->decimal(0),
+                ]))
+                ->groupBy('method')
+                ->map(fn ($methodPayments, string $method): array => [
+                    'method' => $method,
+                    'amount' => $this->decimal((float) $methodPayments->sum('amount')),
+                    'tendered' => $this->decimal((float) $methodPayments->sum('tendered')),
+                    'change_due' => $this->decimal((float) $methodPayments->sum('change_due')),
+                ])
+                ->sortBy('method')
+                ->values()
+                ->all();
+
+            $creditCollectionsCount = (int) $creditCollections->sum('payment_count');
+            $creditCollectionsTotal = (float) $creditCollections->sum('amount');
 
             $cashPayments = collect($payments)->firstWhere('method', 'cash');
             $cashReceived = (float) ($cashPayments['amount'] ?? 0);
@@ -123,6 +150,8 @@ class CashierShiftService
                 'grand_total' => $this->decimal((float) ($sales->grand_total ?? 0)),
                 'paid_total' => $this->decimal((float) ($sales->paid_total ?? 0)),
                 'balance_due' => $this->decimal((float) ($sales->balance_due ?? 0)),
+                'credit_collections_count' => $creditCollectionsCount,
+                'credit_collections_total' => $this->decimal($creditCollectionsTotal),
                 'payments' => $payments,
                 'cash_received' => $this->decimal($cashReceived),
                 'returns_count' => (int) ($returns->returns_count ?? 0),

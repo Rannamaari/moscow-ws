@@ -88,18 +88,34 @@ class CustomerLedgerService
                 if (! $sale || $sale->customer_id !== $customer->id) {
                     throw new TransactionException('Sale does not belong to the selected customer and company.');
                 }
+
+                $saleBalance = (float) $sale->balance_due;
+
+                if ($numericAmount > $saleBalance + 0.0001) {
+                    if (! $this->sameCurrencyAmount($numericAmount, $saleBalance)) {
+                        throw new TransactionException('Customer payment cannot exceed the outstanding balance on this sale.');
+                    }
+
+                    $numericAmount = $saleBalance;
+                }
             }
 
             $currency = $sale?->currency ?? ($attributes['currency'] ?? 'MVR');
+            $receivableBalance = (float) $this->currentBalance($customer->id, $currency);
 
-            if ((float) $this->currentBalance($customer->id, $currency) + 0.0001 < $numericAmount) {
-                throw new TransactionException('Customer payment cannot exceed the receivable balance.');
+            if ($numericAmount > $receivableBalance + 0.0001) {
+                if (! $this->sameCurrencyAmount($numericAmount, $receivableBalance)) {
+                    throw new TransactionException('Customer payment cannot exceed the receivable balance.');
+                }
+
+                $numericAmount = $receivableBalance;
             }
 
             $payment = CustomerPayment::query()->create([
                 'company_id' => $companyId,
                 'customer_id' => $customerId,
                 'sale_id' => $sale?->id,
+                'cashier_shift_id' => $attributes['cashier_shift_id'] ?? null,
                 'payment_method' => $paymentMethod,
                 'currency' => $currency,
                 'amount' => $this->formatDecimal($numericAmount),
@@ -128,6 +144,11 @@ class CustomerLedgerService
 
             return $payment;
         });
+    }
+
+    private function sameCurrencyAmount(float $first, float $second): bool
+    {
+        return abs(round($first, 2) - round($second, 2)) < 0.0001;
     }
 
     private function normalizePositiveDecimal(float|string $value, string $label): float

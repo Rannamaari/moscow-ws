@@ -31,9 +31,33 @@ class CashierShift extends Model
         ];
     }
 
-    public function company(): BelongsTo { return $this->belongsTo(Company::class); }
-    public function branch(): BelongsTo { return $this->belongsTo(Branch::class); }
-    public function warehouse(): BelongsTo { return $this->belongsTo(Warehouse::class); }
-    public function cashier(): BelongsTo { return $this->belongsTo(User::class, 'cashier_id'); }
-    public function sales(): HasMany { return $this->hasMany(Sale::class); }
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class);
+    }
+
+    public function cashier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cashier_id');
+    }
+
+    public function sales(): HasMany
+    {
+        return $this->hasMany(Sale::class);
+    }
+
+    public function customerPayments(): HasMany
+    {
+        return $this->hasMany(CustomerPayment::class);
+    }
 }

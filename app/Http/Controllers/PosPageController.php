@@ -41,6 +41,7 @@ class PosPageController extends Controller
                     'id' => $user->company?->id,
                     'name' => $user->company?->name,
                     'currency' => $context['branch']->currency,
+                    'pos_test_mode' => (bool) $user->company?->pos_test_mode,
                 ],
                 'branch' => [
                     'id' => $context['branch']->id,

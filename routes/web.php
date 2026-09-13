@@ -97,6 +97,7 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/shifts/{cashierShift}/close', [PosApiController::class, 'closeShift'])->name('pos.shifts.close');
 
         Route::get('/customers/search', [PosApiController::class, 'searchCustomers'])->name('pos.customers.search');
+        Route::get('/customers/{customer}/statement', [PosApiController::class, 'customerStatement'])->name('pos.customers.statement');
         Route::post('/customers', [PosApiController::class, 'createCustomer'])->name('pos.customers.store');
 
         Route::get('/held-sales', [PosApiController::class, 'heldSales'])->name('pos.held-sales.index');
@@ -110,5 +111,6 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/sales/{sale}/complete', [PosApiController::class, 'completeHeldSale'])->name('pos.sales.complete');
         Route::post('/sales/{sale}/cancel-held', [PosApiController::class, 'cancelHeldSale'])->name('pos.sales.cancel-held');
         Route::post('/sales/{sale}/returns', [PosApiController::class, 'returnSale'])->name('pos.sales.return');
+        Route::post('/sales/{sale}/payments', [PosApiController::class, 'receiveCustomerPayment'])->name('pos.sales.payments.store');
     });
 });

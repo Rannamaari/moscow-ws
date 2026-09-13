@@ -11,14 +11,14 @@ use App\Exceptions\InventoryException;
 use App\Exceptions\TransactionException;
 use App\Models\Company;
 use App\Models\Customer;
-use App\Models\CustomerTransaction;
+use App\Models\InventoryBalance;
 use App\Models\Product;
+use App\Models\ProductBranchPrice;
 use App\Models\Purchase;
-use App\Models\PurchaseItem;
+use App\Models\PurchaseReturn;
 use App\Models\Sale;
-use App\Models\SalePayment;
+use App\Models\SaleReturn;
 use App\Models\Supplier;
-use App\Models\SupplierTransaction;
 use App\Models\Unit;
 use App\Models\Warehouse;
 use App\Services\CustomerLedgerService;
@@ -197,6 +197,53 @@ class PurchasingSalesEngineTest extends TestCase
     }
 
     #[Test]
+    public function purchase_receipts_update_product_and_branch_costs_using_weighted_average(): void
+    {
+        [$warehouse, $product] = $this->warehouseAndProduct(costPrice: 8);
+        $product->forceFill(['tax_category' => 'exempt'])->save();
+        $supplier = Supplier::factory()->create(['company_id' => $warehouse->company_id]);
+        app(InventoryService::class)->setOpeningStock(
+            $warehouse->company_id,
+            $warehouse->id,
+            $product->id,
+            10,
+            8,
+        );
+
+        foreach ([[10, 12], [5, 20]] as [$quantity, $unitCost]) {
+            $purchase = app(PurchaseService::class)->createPurchase(
+                $warehouse->company_id,
+                $warehouse->id,
+                $supplier->id,
+                [[
+                    'product_id' => $product->id,
+                    'ordered_quantity' => $quantity,
+                    'unit_cost' => $unitCost,
+                    'tax_category' => 'exempt',
+                ]],
+                ['branch_id' => $warehouse->branch_id],
+            );
+            app(PurchaseService::class)->receivePurchase($purchase->id, [
+                $purchase->items->firstOrFail()->id => $quantity,
+            ]);
+        }
+
+        $balance = InventoryBalance::query()
+            ->where('warehouse_id', $warehouse->id)
+            ->where('product_id', $product->id)
+            ->firstOrFail();
+        $branchPrice = ProductBranchPrice::query()
+            ->where('branch_id', $warehouse->branch_id)
+            ->where('product_id', $product->id)
+            ->firstOrFail();
+
+        $this->assertSame('25.0000', $balance->quantity);
+        $this->assertSame('12.0000', $balance->average_cost);
+        $this->assertSame('12.0000', $product->fresh()->cost_price);
+        $this->assertSame('12.0000', $branchPrice->cost_price);
+    }
+
+    #[Test]
     public function cancelled_purchase_cannot_be_received(): void
     {
         [$warehouse, $product] = $this->warehouseAndProduct();
@@ -256,7 +303,7 @@ class PurchasingSalesEngineTest extends TestCase
 
         $this->assertSame('7.0000', app(InventoryService::class)->getBalance($warehouse->company_id, $warehouse->id, $product->id));
         $this->assertDatabaseHas('stock_movements', [
-            'reference_type' => \App\Models\PurchaseReturn::class,
+            'reference_type' => PurchaseReturn::class,
             'reference_id' => $purchaseReturn->id,
             'type' => StockMovementType::PurchaseReturn->value,
         ]);
@@ -277,7 +324,7 @@ class PurchasingSalesEngineTest extends TestCase
     {
         $this->seed(DatabaseSeeder::class);
 
-        $company = Company::query()->where('name', 'Island Thrift Demo Company')->firstOrFail();
+        $company = Company::query()->where('name', 'Moscow Traders Wholesale')->firstOrFail();
         $this->assertDatabaseHas('customers', [
             'company_id' => $company->id,
             'code' => 'WALK-IN',
@@ -530,7 +577,7 @@ class PurchasingSalesEngineTest extends TestCase
 
         $this->assertSame('7.0000', app(InventoryService::class)->getBalance($warehouse->company_id, $warehouse->id, $product->id));
         $this->assertDatabaseHas('stock_movements', [
-            'reference_type' => \App\Models\SaleReturn::class,
+            'reference_type' => SaleReturn::class,
             'reference_id' => $saleReturn->id,
             'type' => StockMovementType::SaleReturn->value,
         ]);

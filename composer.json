@@ -1,9 +1,9 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "rannamaari/island-thrift",
+    "name": "rannamaari/moscow-traders-wholesale",
     "type": "project",
-    "description": "Island Thrift retail point-of-sale and inventory management application.",
-    "keywords": ["island-thrift", "point-of-sale", "inventory", "laravel"],
+    "description": "Moscow Traders Wholesale retail point-of-sale and inventory management application.",
+    "keywords": ["moscow-traders-wholesale", "point-of-sale", "inventory", "laravel"],
     "license": "MIT",
     "require": {
         "ext-gd": "*",
@@ -66,7 +66,7 @@
         ],
         "post-create-project-cmd": [
             "@php artisan key:generate --ansi",
-            "@php -r \"file_exists('database/island_thrift.sqlite') || touch('database/island_thrift.sqlite');\"",
+            "@php -r \"file_exists('database/moscow_traders_wholesale.sqlite') || touch('database/moscow_traders_wholesale.sqlite');\"",
             "@php artisan migrate --graceful --ansi"
         ],
         "pre-package-uninstall": [

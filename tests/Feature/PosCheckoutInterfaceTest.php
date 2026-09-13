@@ -46,7 +46,7 @@ class PosCheckoutInterfaceTest extends TestCase
             ->assertSee('pos-app', false)
             ->assertSee('<html lang="en" dir="ltr">', false)
             ->assertSee('"can_access_admin":false', false)
-            ->assertSee('Island Thrift');
+            ->assertSee('Moscow Traders Wholesale');
     }
 
     #[Test]
@@ -207,13 +207,19 @@ class PosCheckoutInterfaceTest extends TestCase
             ->postJson('/pos/api/customers', [
                 'name' => 'New Counter Customer',
                 'phone' => '7771234',
+                'tax_number' => '1019999GST501',
+                'payment_terms_days' => 15,
             ])
             ->assertCreated()
-            ->assertJsonPath('data.name', 'New Counter Customer');
+            ->assertJsonPath('data.name', 'New Counter Customer')
+            ->assertJsonPath('data.tax_number', '1019999GST501')
+            ->assertJsonPath('data.payment_terms_days', 15);
 
         $this->assertDatabaseHas('customers', [
             'company_id' => $warehouse->company_id,
             'name' => 'New Counter Customer',
+            'tax_number' => '1019999GST501',
+            'payment_terms_days' => 15,
         ]);
     }
 
@@ -521,13 +527,17 @@ class PosCheckoutInterfaceTest extends TestCase
             ])
             ->assertOk()
             ->assertJsonPath('data.status', 'cancelled')
-            ->assertJsonPath('data.customer.id', $customer->id);
+            ->assertJsonPath('data.customer.id', $customer->id)
+            ->assertJsonPath('data.balance_due', '0.0000');
 
         $this->assertDatabaseHas('sales', [
             'id' => $ownHeldSale->id,
             'status' => 'cancelled',
             'cancellation_reason' => 'Manager instruction',
             'cancelled_by' => $manager->id,
+            'paid_total' => 0,
+            'balance_due' => 0,
+            'due_date' => null,
         ]);
 
         $this->actingAs($cashier)
@@ -874,6 +884,51 @@ class PosCheckoutInterfaceTest extends TestCase
             ->assertNotFound();
     }
 
+    #[Test]
+    public function pos_test_mode_allows_zero_stock_sales_only_while_enabled(): void
+    {
+        [$warehouse, $product] = $this->warehouseAndProduct(sellingPrice: 10);
+        $cashier = $this->userWithRole('cashier', $warehouse);
+        $this->openShift($cashier);
+        $warehouse->company->update(['pos_test_mode' => true]);
+
+        $this->actingAs($cashier)
+            ->get('/pos')
+            ->assertOk()
+            ->assertSee('"pos_test_mode":true', false);
+
+        $this->actingAs($cashier)
+            ->postJson('/pos/api/sales', [
+                'client_transaction_uuid' => 'test-mode-zero-stock-1',
+                'items' => [['product_id' => $product->id, 'quantity' => 1]],
+                'payments' => [[
+                    'payment_method' => 'cash',
+                    'amount' => 10,
+                    'amount_tendered' => 10,
+                ]],
+            ])
+            ->assertOk();
+
+        $this->assertSame('-1.0000', app(InventoryService::class)->getBalance($warehouse->company_id, $warehouse->id, $product->id));
+
+        $warehouse->company->update(['pos_test_mode' => false]);
+
+        $this->actingAs($cashier)
+            ->postJson('/pos/api/sales', [
+                'client_transaction_uuid' => 'test-mode-zero-stock-2',
+                'items' => [['product_id' => $product->id, 'quantity' => 1]],
+                'payments' => [[
+                    'payment_method' => 'cash',
+                    'amount' => 10,
+                    'amount_tendered' => 10,
+                ]],
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.stock.0', 'Insufficient stock for one or more items.');
+
+        $this->assertSame('-1.0000', app(InventoryService::class)->getBalance($warehouse->company_id, $warehouse->id, $product->id));
+    }
+
     private function userWithRole(string $role, Warehouse $warehouse): User
     {
         $user = User::factory()->forWarehouse($warehouse)->create();
@@ -916,7 +971,7 @@ class PosCheckoutInterfaceTest extends TestCase
         $quantity = $overrides['quantity'] ?? 1;
         $paymentMethod = $overrides['payment_method'] ?? 'cash';
         $lineSubtotal = (float) $product->selling_price * $quantity;
-        $taxAmount = $lineSubtotal * ((float) $product->tax_rate / 100);
+        $taxAmount = $lineSubtotal * ($product->effectiveTaxRate() / 100);
         $amount = $overrides['amount'] ?? round($lineSubtotal + $taxAmount, 4);
 
         return app(SalesService::class)->createSale(

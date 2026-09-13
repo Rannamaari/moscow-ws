@@ -55,6 +55,8 @@ class ProductFactory extends Factory
             'selling_price' => fake()->randomFloat(4, 1, 200),
             'wholesale_price' => fake()->optional()->randomFloat(4, 1, 180),
             'tax_rate' => fake()->randomElement([0, 8, 10]),
+            'is_taxable' => true,
+            'tax_category' => 'standard_rated',
             'minimum_stock' => fake()->randomFloat(4, 0, 100),
             'allow_negative_stock' => false,
             'track_inventory' => true,

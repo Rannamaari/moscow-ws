@@ -30,6 +30,7 @@ class Customer extends Model
         'address',
         'city',
         'credit_limit',
+        'payment_terms_days',
         'opening_balance',
         'notes',
         'is_active',
@@ -43,6 +44,7 @@ class Customer extends Model
     {
         return [
             'credit_limit' => 'decimal:4',
+            'payment_terms_days' => 'integer',
             'opening_balance' => 'decimal:4',
             'phone_verified_at' => 'datetime',
             'is_active' => 'boolean',

@@ -13,6 +13,8 @@ import SaleCompleteModal from './components/pos/SaleCompleteModal.vue';
 import SaleLookupModal from './components/pos/SaleLookupModal.vue';
 import ShortcutHelpModal from './components/pos/ShortcutHelpModal.vue';
 import CashierShiftModal from './components/pos/CashierShiftModal.vue';
+import CustomerStatementModal from './components/pos/CustomerStatementModal.vue';
+import ReceiveCreditPaymentModal from './components/pos/ReceiveCreditPaymentModal.vue';
 
 const props = defineProps({
     bootstrap: {
@@ -72,6 +74,9 @@ function onGlobalKeydown(event) {
         store.heldSalesModalOpen = false;
         store.saleLookupModalOpen = false;
         store.shortcutModalOpen = false;
+        store.customerStatementModalOpen = false;
+        store.creditPaymentModalOpen = false;
+        store.creditPaymentSale = null;
         store.saleCompleteModal = null;
         focusSearch();
     }
@@ -184,5 +189,7 @@ onBeforeUnmount(() => {
         <SaleLookupModal v-if="store.saleLookupModalOpen" @close="store.saleLookupModalOpen = false; focusSearch()" />
         <ShortcutHelpModal v-if="store.shortcutModalOpen" @close="store.shortcutModalOpen = false; focusSearch()" />
         <CashierShiftModal v-if="shiftModalMode" :mode="shiftModalMode" @close="shiftModalMode = null; focusSearch()" @saved="shiftSaved" />
+        <CustomerStatementModal v-if="store.customerStatementModalOpen" @close="store.customerStatementModalOpen = false; focusSearch()" />
+        <ReceiveCreditPaymentModal v-if="store.creditPaymentModalOpen" @close="store.creditPaymentModalOpen = false; store.creditPaymentSale = null; focusSearch()" />
     </div>
 </template>

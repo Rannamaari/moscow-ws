@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\TaxCategory;
 use Database\Factories\SaleItemFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -27,6 +28,7 @@ class SaleItem extends Model
         'discount_amount',
         'tax_rate',
         'tax_amount',
+        'tax_category',
         'line_total',
     ];
 
@@ -42,6 +44,7 @@ class SaleItem extends Model
             'discount_amount' => 'decimal:4',
             'tax_rate' => 'decimal:4',
             'tax_amount' => 'decimal:4',
+            'tax_category' => TaxCategory::class,
             'line_total' => 'decimal:4',
         ];
     }

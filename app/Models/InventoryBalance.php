@@ -21,6 +21,7 @@ class InventoryBalance extends Model
         'warehouse_id',
         'product_id',
         'quantity',
+        'average_cost',
     ];
 
     /**
@@ -30,6 +31,7 @@ class InventoryBalance extends Model
     {
         return [
             'quantity' => 'decimal:4',
+            'average_cost' => 'decimal:4',
         ];
     }
 

@@ -22,6 +22,8 @@ class Company extends Model
         'legal_name',
         'registration_number',
         'tax_number',
+        'default_tax_rate',
+        'gst_filing_frequency',
         'receipt_gst_label',
         'phone',
         'email',
@@ -35,6 +37,7 @@ class Company extends Model
         'timezone',
         'currency',
         'is_active',
+        'pos_test_mode',
         'website_enabled',
         'online_branch_id',
         'online_warehouse_id',
@@ -50,7 +53,9 @@ class Company extends Model
     protected function casts(): array
     {
         return [
+            'default_tax_rate' => 'decimal:4',
             'is_active' => 'boolean',
+            'pos_test_mode' => 'boolean',
             'receipt_show_address' => 'boolean',
             'receipt_show_phone' => 'boolean',
             'website_enabled' => 'boolean',

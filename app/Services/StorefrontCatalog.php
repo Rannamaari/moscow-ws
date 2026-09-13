@@ -18,7 +18,7 @@ class StorefrontCatalog
         return Product::query()
             ->visibleOnline()
             ->where('products.company_id', $company->id)
-            ->with(['category:id,name,slug', 'brand:id,name'])
+            ->with(['category:id,name,slug', 'brand:id,name', 'company:id,default_tax_rate'])
             ->withSum(['inventoryBalances as online_stock' => fn ($query) => $query->where('warehouse_id', $warehouse->id)], 'quantity')
             ->with(['branchPrices' => fn ($query) => $query->where('branch_id', $branch->id)]);
     }
@@ -49,7 +49,7 @@ class StorefrontCatalog
 
     private function includingTax(float $price, Product $product): float
     {
-        return round($price * (1 + ((float) $product->tax_rate / 100)), 4);
+        return round($price * (1 + ($product->effectiveTaxRate() / 100)), 4);
     }
 
     public function available(Product $product): float

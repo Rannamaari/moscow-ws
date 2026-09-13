@@ -29,6 +29,7 @@ class CustomerFactory extends Factory
             'address' => fake()->optional()->address(),
             'city' => fake()->optional()->city(),
             'credit_limit' => fake()->optional()->randomFloat(4, 500, 5000),
+            'payment_terms_days' => 7,
             'opening_balance' => 0,
             'notes' => fake()->optional()->sentence(),
             'is_active' => true,

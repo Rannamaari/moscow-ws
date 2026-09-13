@@ -1,6 +1,6 @@
-# Island Thrift
+# Moscow Traders Wholesale
 
-Island Thrift is a Laravel-based ecommerce, point-of-sale, and inventory management application. The public storefront, guest checkout, Filament admin, purchasing, sales, stock, customer and supplier ledgers, cashier shifts, receipts, and reporting all use the same database.
+Moscow Traders Wholesale is a Laravel-based ecommerce, point-of-sale, and inventory management application. The public storefront, guest checkout, Filament admin, purchasing, sales, stock, customer and supplier ledgers, cashier shifts, receipts, and reporting all use the same database.
 
 ## Requirements
 
@@ -16,19 +16,19 @@ Island Thrift is a Laravel-based ecommerce, point-of-sale, and inventory managem
 composer install
 cp .env.example .env
 php artisan key:generate
-touch database/island_thrift.sqlite
+touch database/moscow_traders_wholesale.sqlite
 php artisan migrate --seed
 npm install
 npm run build
 php artisan serve
 ```
 
-The default local database is `database/island_thrift.sqlite`. To use MySQL or PostgreSQL instead, replace the `DB_*` values in `.env` and run `php artisan migrate --seed` against the new database.
+The default local database is `database/moscow_traders_wholesale.sqlite`. To use MySQL or PostgreSQL instead, replace the `DB_*` values in `.env` and run `php artisan migrate --seed` against the new database.
 
 The demo seeder creates these local accounts:
 
-- Administrator: `admin@islandthrift.local`
-- Cashier: `cashier@islandthrift.local`
+- Administrator: `admin@moscowtraders.local`
+- Cashier: `cashier@moscowtraders.local`
 - Password for both: `password`
 
 Change or remove the demo credentials before deploying the application.
@@ -63,7 +63,7 @@ vendor/bin/pint --test
 ## Product import
 
 ```bash
-php artisan island-thrift:import-products COMPANY_UUID products.csv
+php artisan moscow-traders-wholesale:import-products COMPANY_UUID products.csv
 ```
 
 ## DigitalOcean production deployment

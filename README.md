@@ -68,7 +68,7 @@ php artisan moscow-traders-wholesale:import-products COMPANY_UUID products.csv
 
 ## DigitalOcean production deployment
 
-Production templates are available in [`deploy/`](deploy/) and [`.env.production.example`](.env.production.example). The environment template is configured for `https://islandthrift.micronet.mv`, the DigitalOcean PostgreSQL database `islandthrift`, the managed database host, port `25060`, user `doadmin`, and required SSL. Replace the database password placeholder and generate the application key on the droplet. Never commit the real `.env` file.
+Production templates are available in [`deploy/`](deploy/) and [`.env.production.example`](.env.production.example). Configure the PostgreSQL host, port, database, username, and password as secrets in the hosting environment; SSL mode is set to `require`. Generate the application key on the application server. Never commit the real `.env` file or database credentials.
 
 For a first deployment on an Ubuntu droplet with Nginx and PHP-FPM already installed:
 

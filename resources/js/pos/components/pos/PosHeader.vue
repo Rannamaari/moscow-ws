@@ -30,7 +30,7 @@ onBeforeUnmount(() => clearInterval(timer));
                 <div>
                     <div class="mb-1 flex items-center gap-2 md:mb-2 md:gap-3">
                         <span class="rounded-full bg-[var(--pos-accent)]/18 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--pos-accent-strong)]">Online</span>
-                        <span v-if="store.bootstrap.company?.pos_test_mode" class="rounded-full bg-amber-400 px-3 py-1 text-xs font-black uppercase tracking-[0.2em] text-black">TEST</span>
+                        <span v-if="store.bootstrap.company?.pos_test_mode" class="rounded-full bg-amber-400 px-3 py-1 text-xs font-black uppercase tracking-[0.2em] text-black">TEST POS</span>
                         <span class="text-sm text-[var(--pos-muted)]">Retail Checkout</span>
                     </div>
                     <h1 class="font-[var(--font-display)] text-2xl font-bold tracking-tight text-white sm:text-3xl md:text-4xl">Moscow Traders Wholesale</h1>

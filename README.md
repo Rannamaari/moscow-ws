@@ -137,6 +137,30 @@ curl --request POST 'https://messaging.dhiraagu.com.mv/v1/api/sms' \
   --data '{"destination":["9607779493"],"content":"Your message here","source":"Micronet","authorizationKey":"<base64-authorization-key>"}'
 ```
 
+## Telegram sales notifications
+
+Telegram credentials and recipient chat IDs must be configured only in the production environment. Never commit a real bot token. The notification list receives every completed POS or website sale, counter-opening alerts, and the counter-closing end-of-day summary. The command list may use `/today`, `/sales`, and `/sale SAL-000001` after messaging `/start` to the bot.
+
+```env
+TELEGRAM_SALES_ENABLED=true
+TELEGRAM_BOT_TOKEN=<deployment-secret>
+TELEGRAM_NOTIFICATION_CHAT_IDS=<comma-separated-chat-ids>
+TELEGRAM_COMMAND_CHAT_IDS=<comma-separated-chat-ids>
+TELEGRAM_WEBHOOK_SECRET=<random-deployment-secret>
+TELEGRAM_TIMEOUT=10
+```
+
+After changing the server `.env`, reload configuration, send a test broadcast, and register the command webhook:
+
+```bash
+php artisan config:clear
+php artisan config:cache
+php artisan telegram:test
+php artisan telegram:set-webhook
+```
+
+The webhook defaults to `${APP_URL}/api/telegram/webhook`, which is `https://shop.micronet.mv/api/telegram/webhook` in production. Both users must first open the bot in Telegram and press **Start**. Telegram will reject proactive messages to a user who has never started the bot.
+
 ## License
 
 This project is proprietary unless a separate license is provided by the repository owner.

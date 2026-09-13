@@ -22,20 +22,12 @@ class HomeController extends Controller
             ->limit(8)
             ->get();
 
-        $featured = $catalog->query()->where('is_featured', true)->latest()->limit(8)->get();
+        $featured = $catalog->query()
+            ->where('is_featured', true)
+            ->latest()
+            ->limit(12)
+            ->get();
 
-        if ($featured->isEmpty()) {
-            $featured = $catalog->query()->latest()->limit(8)->get();
-        }
-
-        $newArrivals = $catalog->query()->latest()->limit(8)->get();
-        $popular = $catalog->query()
-            ->withSum(['saleItems as units_sold' => fn ($query) => $query->whereHas('sale', fn ($sales) => $sales->where('status', 'completed'))], 'quantity')
-            ->orderByDesc('units_sold')
-            ->limit(4)
-            ->get()
-            ->filter(fn ($product) => (float) $product->units_sold > 0);
-
-        return view('storefront.home', compact('company', 'categories', 'featured', 'newArrivals', 'popular'));
+        return view('storefront.home', compact('company', 'categories', 'featured'));
     }
 }

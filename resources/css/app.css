@@ -182,3 +182,56 @@ html[dir="rtl"] .pos-shell .text-right {
     .store-product-grid article > div { padding:.875rem; }
     .store-device-stage { display:none; }
 }
+
+/* Moscow Traders supermarket storefront */
+.storefront-body { background:#fbfcf8; }
+.store-header { box-shadow:0 4px 24px rgba(36,83,42,.07); }
+.store-utility-bar { color:#eaf7e4; background:#173e24; }
+.store-search-input { width:100%; border:1px solid #dce4d8; border-radius:14px; background:#f5f7f2; padding:14px 18px 14px 48px; font-size:.875rem; outline:none; transition:.2s; }
+.store-search-input:focus { border-color:#52a34f; background:#fff; box-shadow:0 0 0 4px rgba(82,163,79,.12); }
+.store-header-action { min-width:56px; align-items:center; justify-content:center; flex-direction:column; gap:3px; padding:7px 8px; border-radius:12px; color:#3c473e; font-size:10px; font-weight:800; transition:.2s; }
+.store-header-action:hover { color:#287638; background:#f0f7eb; }
+.store-header-action svg { width:23px; height:23px; }
+.store-category-nav { border-top:1px solid #e3eadf; border-bottom:3px solid #60b44a; color:#384438; }
+.store-category-nav a { transition:.2s; }
+.store-category-nav a:hover { color:#2b873b; }
+.store-all-categories { display:flex; align-items:center; gap:9px; color:#287638; }
+.store-supermarket-hero { border:1px solid #d9e6d0; background:radial-gradient(circle at 18% 12%,rgba(255,255,255,.9),transparent 27%),linear-gradient(118deg,#eff7df 0%,#f5f4d8 52%,#d9efbb 100%); }
+.store-bulk-banner { background:radial-gradient(circle at 90% 20%,rgba(125,211,72,.25),transparent 30%),linear-gradient(120deg,#173d25,#246634); }
+.store-eyebrow { width:fit-content; border-color:#b9d9a3; background:rgba(255,255,255,.75); color:#287638; }
+.store-kicker,.store-section-heading>a { color:#2d8c3f; }
+.store-button-primary,.store-hero-button { border-radius:12px; background:#2f913f; color:white; box-shadow:0 10px 22px rgba(30,90,42,.13); }
+.store-button-primary:hover,.store-hero-button:hover { background:#237633; }
+.store-hero-secondary { border-color:#b7caae; border-radius:12px; background:rgba(255,255,255,.7); color:#26452e; }
+.store-mobile-link:hover { background:#eff8e9; color:#257537; }
+.store-product-card { border:1px solid #e1e8dc; border-radius:20px; box-shadow:0 4px 18px rgba(45,77,43,.05); transition:transform .25s,box-shadow .25s,border-color .25s; }
+.store-product-card:hover { transform:translateY(-4px); border-color:#bbd7aa; box-shadow:0 16px 34px rgba(45,77,43,.11); }
+.store-product-placeholder { color:#6daa4f; }
+.store-benefit { display:flex; align-items:center; gap:12px; min-height:88px; padding:18px 22px; border-right:1px solid #e5ecdf; }
+.store-benefit:last-child { border-right:0; }
+.store-benefit-check { display:grid; width:34px; height:34px; flex:0 0 34px; place-items:center; border-radius:50%; color:white; background:#51a33e; font-weight:900; }
+.store-benefit strong,.store-benefit small { display:block; }
+.store-benefit strong { font-size:13px; color:#243428; }
+.store-benefit small { margin-top:2px; font-size:11px; color:#7a857b; }
+.store-category-chip { display:grid; min-width:150px; grid-template-columns:42px 1fr auto; align-items:center; gap:10px; border:1px solid #e0e8db; border-radius:14px; padding:11px 13px; background:white; font-size:12px; transition:.2s; }
+.store-category-chip:hover { border-color:#87bb6f; color:#247334; box-shadow:0 5px 16px rgba(45,77,43,.08); }
+.store-category-chip>span { display:grid; width:42px; height:42px; place-items:center; border-radius:12px; color:#2b8038; background:#edf7e7; font-weight:900; }
+.store-category-chip small { color:#94a097; }
+.store-grocery-display { background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.82),transparent 47%); }
+.store-grocery-bag { position:relative; width:330px; height:330px; }
+.store-grocery-bag-front { position:absolute; z-index:5; bottom:5px; left:35px; width:260px; height:220px; display:flex; flex-direction:column; align-items:center; justify-content:center; clip-path:polygon(8% 0,92% 0,100% 100%,0 100%); background:linear-gradient(145deg,#f5be3e,#ef982e); color:#173723; filter:drop-shadow(0 24px 24px rgba(46,78,34,.18)); }
+.store-grocery-bag-front strong { font-size:31px; line-height:1; letter-spacing:-.05em; }
+.store-grocery-bag-front small { margin-top:7px; font-size:9px; font-weight:900; letter-spacing:.18em; }
+.store-grocery-item { position:absolute; z-index:3; display:grid; place-items:center; color:white; font-size:10px; font-weight:900; letter-spacing:.08em; box-shadow:0 16px 24px rgba(44,69,35,.16); }
+.store-grocery-item-one { left:45px; top:16px; width:92px; height:175px; border-radius:45px 45px 18px 18px; background:#368643; transform:rotate(-10deg); }
+.store-grocery-item-two { right:42px; top:34px; width:72px; height:155px; border-radius:18px 18px 12px 12px; background:#e6aa27; transform:rotate(9deg); }
+.store-grocery-item-three { left:130px; top:0; width:76px; height:180px; border:6px solid #57a54c; border-radius:14px; background:#f7faf0; color:#2b7d36; }
+.store-grocery-item-four { right:88px; top:67px; width:56px; height:130px; border-radius:20px 20px 10px 10px; background:#dc5736; transform:rotate(3deg); }
+.store-grocery-leaf { position:absolute; width:44px; height:24px; border-radius:100% 0 100% 0; background:#6abf45; }
+.leaf-one { right:15%; top:18%; transform:rotate(35deg); }
+.leaf-two { left:12%; bottom:18%; transform:rotate(-25deg) scale(.7); }
+
+@media (max-width:640px) {
+    .store-section-heading { align-items:flex-start; }
+    .store-benefit { border-right:0; border-bottom:1px solid #e5ecdf; }
+}

@@ -3,7 +3,7 @@
     $storeCompany = $store->company();
     $storeCustomer = app(\App\Services\StorefrontCustomerSession::class)->customer(request(), $storeCompany);
     $cartCount = collect(session('store_cart', []))->sum();
-    $logoCandidates = ['images/moscow-traders-wholesale/logo.webp', 'images/moscow-traders-wholesale/logo.png', 'images/moscow-traders-wholesale/logo.svg', 'logo.png', 'logo.svg'];
+    $logoCandidates = ['images/moscow logo.png', 'images/moscow-traders-wholesale/logo.webp', 'images/moscow-traders-wholesale/logo.png', 'images/moscow-traders-wholesale/logo.svg', 'logo.png', 'logo.svg'];
     $logoPath = collect($logoCandidates)->first(fn ($path) => file_exists(public_path($path)));
     $pageTitle = trim($__env->yieldContent('title', 'Moscow Traders Wholesale'));
     $pageDescription = trim($__env->yieldContent('description', 'Shop wholesale groceries and everyday essentials from Moscow Traders Wholesale in the Maldives.'));
@@ -63,61 +63,65 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('head')
 </head>
-<body class="storefront-body min-h-screen bg-slate-50 text-slate-950 antialiased">
-    <header class="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
-        <div class="store-container flex h-16 items-center gap-3 lg:h-20">
-            <a href="{{ route('store.home') }}" class="flex shrink-0 items-center gap-2.5" aria-label="Moscow Traders Wholesale home">
+<body class="storefront-body min-h-screen bg-[#fbfcf8] text-slate-950 antialiased">
+    <header class="store-header sticky top-0 z-50 bg-white">
+        <div class="store-utility-bar">
+            <div class="store-container flex items-center justify-between gap-4 py-2 text-[11px] font-bold sm:text-xs">
+                <span>Wholesale grocery essentials for shops, cafés and businesses</span>
+                <span class="hidden sm:inline">Malé, Maldives @if($storeCompany->phone) · {{ $storeCompany->phone }} @endif</span>
+            </div>
+        </div>
+
+        <div class="store-container grid min-h-20 grid-cols-[auto_1fr_auto] items-center gap-3 py-3 lg:min-h-24 lg:gap-8">
+            <a href="{{ route('store.home') }}" class="flex shrink-0 items-center gap-3" aria-label="Moscow Traders Wholesale home">
                 @if($logoPath)
-                    <img src="{{ asset($logoPath) }}" width="1774" height="887" alt="Moscow Traders Wholesale" class="h-11 w-[88px] object-contain lg:h-14 lg:w-28">
+                    <img src="{{ asset($logoPath) }}" width="1024" height="1024" alt="Moscow Traders Wholesale" class="h-14 w-14 object-contain sm:h-16 sm:w-16">
                 @else
-                    <span class="grid h-10 w-10 place-items-center rounded-2xl bg-indigo-600 text-lg font-black text-white shadow-lg shadow-indigo-200">MT</span>
-                    <span class="leading-none"><strong class="block text-base font-black tracking-tight lg:text-lg">Moscow Traders Wholesale</strong><small class="hidden text-[10px] font-bold uppercase tracking-[.18em] text-indigo-600 sm:block">Wholesale Groceries</small></span>
+                    <span class="grid h-12 w-12 place-items-center rounded-full bg-[#66c11f] text-lg font-black text-white">MT</span>
                 @endif
+                <span class="hidden leading-tight md:block"><strong class="block text-lg font-black tracking-tight">Moscow Traders</strong><small class="text-[10px] font-black uppercase tracking-[.2em] text-[#26833c]">Wholesale</small></span>
             </a>
 
-            <nav class="ml-auto hidden items-center gap-7 text-sm font-semibold text-slate-600 lg:flex" aria-label="Main navigation">
-                <a class="store-nav-link" href="{{ route('store.home') }}">Home</a>
-                <a class="store-nav-link" href="{{ route('store.shop') }}">Shop</a>
-                <a class="store-nav-link" href="{{ route('store.shop') }}#categories">Categories</a>
-                <a class="store-nav-link" href="{{ route('store.shop', ['sort' => 'newest']) }}">New Arrivals</a>
-                <a class="store-nav-link" href="{{ route('store.contact') }}">Contact</a>
-            </nav>
+            <form action="{{ route('store.shop') }}" class="hidden md:block">
+                <label class="relative block">
+                    <span class="sr-only">Search grocery products</span>
+                    <input name="q" value="{{ request('q') }}" placeholder="Search rice, drinks, sauces, dairy and more..." class="store-search-input">
+                    <svg class="absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                </label>
+            </form>
 
-            <div class="ml-auto flex items-center gap-1.5 lg:ml-7">
-                <form action="{{ route('store.shop') }}" class="hidden xl:block">
-                    <label class="relative block">
-                        <span class="sr-only">Search products</span>
-                        <input name="q" value="{{ request('q') }}" placeholder="Search products" class="w-52 rounded-full border border-slate-200 bg-slate-50 py-2.5 pr-4 pl-10 text-sm outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100">
-                        <svg class="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-                    </label>
-                </form>
-                <a href="{{ route('store.cart') }}" class="relative grid h-11 w-11 place-items-center rounded-full text-slate-700 transition hover:bg-slate-100" aria-label="Cart with {{ $cartCount }} items">
-                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h2l2.4 11.2a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L21 7H6"/><circle cx="10" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>
-                    @if($cartCount)<span class="absolute top-0 right-0 grid min-h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white">{{ min(99, $cartCount) }}</span>@endif
+            <div class="ml-auto flex items-center gap-1 sm:gap-2">
+                <a href="{{ route('store.shop') }}#categories" class="store-header-action hidden lg:flex">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Categories</span>
+                </a>
+                <a href="{{ route('store.cart') }}" class="store-header-action relative flex">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 4h2l2.3 10.2a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 2-1.6L21 7H6"/><circle cx="10" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg><span class="hidden sm:inline">Cart</span>
+                    @if($cartCount)<b class="absolute top-0 right-0 grid min-h-5 min-w-5 place-items-center rounded-full bg-[#ed552f] px-1 text-[10px] text-white">{{ min(99, $cartCount) }}</b>@endif
                 </a>
                 @if($storeCustomer)
                     <details class="relative hidden sm:block">
-                        <summary class="store-button-primary cursor-pointer list-none px-5 py-2.5">{{ \Illuminate\Support\Str::before($storeCustomer->name, ' ') }}</summary>
-                        <div class="absolute right-0 mt-3 w-56 rounded-2xl border border-slate-200 bg-white p-2 text-sm shadow-2xl">
-                            <div class="border-b border-slate-100 px-3 py-2"><strong class="block truncate">{{ $storeCustomer->name }}</strong><small class="text-slate-500">{{ $storeCustomer->phone }}</small></div>
-                            <a class="store-mobile-link mt-1 block" href="{{ route('store.register') }}">Account profile</a>
-                            <form method="POST" action="{{ route('store.customer.logout') }}">@csrf<button class="store-mobile-link w-full text-left text-rose-600">Sign out</button></form>
-                        </div>
+                        <summary class="store-header-action flex cursor-pointer list-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c.7-5 3.4-7 8-7s7.3 2 8 7"/></svg><span>{{ \Illuminate\Support\Str::before($storeCustomer->name, ' ') }}</span></summary>
+                        <div class="absolute right-0 mt-3 w-56 rounded-2xl border border-slate-200 bg-white p-2 text-sm shadow-2xl"><div class="border-b border-slate-100 px-3 py-2"><strong class="block truncate">{{ $storeCustomer->name }}</strong><small class="text-slate-500">{{ $storeCustomer->phone }}</small></div><a class="store-mobile-link mt-1 block" href="{{ route('store.register') }}">Account profile</a><form method="POST" action="{{ route('store.customer.logout') }}">@csrf<button class="store-mobile-link w-full text-left text-rose-600">Sign out</button></form></div>
                     </details>
                 @else
-                    <a href="{{ route('store.register') }}" class="store-button-primary hidden px-5 py-2.5 sm:inline-flex">Register</a>
+                    <a href="{{ route('store.register') }}" class="store-header-action hidden sm:flex"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c.7-5 3.4-7 8-7s7.3 2 8 7"/></svg><span>Account</span></a>
                 @endif
                 <details class="relative lg:hidden">
-                    <summary class="grid h-11 w-11 cursor-pointer list-none place-items-center rounded-full hover:bg-slate-100" aria-label="Open menu">
-                        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-                    </summary>
-                    <div class="absolute right-0 mt-3 w-72 rounded-3xl border border-slate-200 bg-white p-4 shadow-2xl">
-                        <form action="{{ route('store.shop') }}" class="mb-3"><input name="q" placeholder="Search products" class="store-input"></form>
-                        <nav class="grid gap-1 text-sm font-semibold"><a class="store-mobile-link" href="{{ route('store.home') }}">Home</a><a class="store-mobile-link" href="{{ route('store.shop') }}">Shop</a><a class="store-mobile-link" href="{{ route('store.shop', ['sort' => 'newest']) }}">New Arrivals</a><a class="store-mobile-link" href="{{ route('store.contact') }}">Contact</a>@if($storeCustomer)<a class="store-mobile-link" href="{{ route('store.register') }}">Account profile</a><form method="POST" action="{{ route('store.customer.logout') }}">@csrf<button class="store-mobile-link w-full text-left text-rose-600">Sign out</button></form>@else<a class="store-mobile-link" href="{{ route('store.register') }}">Register</a>@endif</nav>
-                    </div>
+                    <summary class="grid h-11 w-11 cursor-pointer list-none place-items-center rounded-xl hover:bg-green-50" aria-label="Open menu"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
+                    <div class="absolute right-0 mt-3 w-72 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl"><nav class="grid gap-1 text-sm font-semibold"><a class="store-mobile-link" href="{{ route('store.home') }}">Home</a><a class="store-mobile-link" href="{{ route('store.shop') }}">All Products</a><a class="store-mobile-link" href="{{ route('store.shop') }}#categories">Categories</a><a class="store-mobile-link" href="{{ route('store.contact') }}">Contact</a>@if(!$storeCustomer)<a class="store-mobile-link" href="{{ route('store.register') }}">Account</a>@endif</nav></div>
                 </details>
             </div>
         </div>
+
+        <div class="store-container pb-3 md:hidden"><form action="{{ route('store.shop') }}"><label class="relative block"><span class="sr-only">Search grocery products</span><input name="q" value="{{ request('q') }}" placeholder="Search products..." class="store-search-input"><svg class="absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></label></form></div>
+
+        <nav class="store-category-nav" aria-label="Product categories">
+            <div class="store-container flex items-center gap-7 overflow-x-auto py-3 text-xs font-black uppercase tracking-[.1em] whitespace-nowrap">
+                <a href="{{ route('store.shop') }}" class="store-all-categories"><span>☰</span> All Products</a>
+                @foreach($storeCategories as $navCategory)<a href="{{ route('store.category', $navCategory->slug) }}">{{ $navCategory->name }}</a>@endforeach
+                <a href="{{ route('store.contact') }}" class="ml-auto">Contact</a>
+            </div>
+        </nav>
     </header>
 
     @if(session('success'))<div class="store-container pt-4"><div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-800">{{ session('success') }}</div></div>@endif
@@ -125,22 +129,17 @@
 
     <main>@yield('content')</main>
 
-    <footer class="mt-20 bg-slate-950 text-slate-300">
+    <footer class="mt-20 bg-[#12391f] text-green-50/80">
         <div class="store-container grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
-            <div><div class="mb-4">@if($logoPath)<img src="{{ asset($logoPath) }}" width="1774" height="887" alt="Moscow Traders Wholesale" class="h-16 w-32 object-contain">@else<div class="flex items-center gap-3"><span class="grid h-10 w-10 place-items-center rounded-2xl bg-indigo-500 font-black text-white">MT</span><strong class="text-lg text-white">Moscow Traders Wholesale</strong></div>@endif</div><p class="max-w-xs text-sm leading-6 text-slate-400">Wholesale groceries, beverages and everyday essentials for your business.</p></div>
+            <div><div class="mb-4 flex items-center gap-3">@if($logoPath)<img src="{{ asset($logoPath) }}" width="1024" height="1024" alt="Moscow Traders Wholesale" class="h-16 w-16 rounded-full bg-white object-contain">@endif<div><strong class="block text-lg text-white">Moscow Traders</strong><small class="font-bold uppercase tracking-[.18em] text-lime-300">Wholesale</small></div></div><p class="max-w-xs text-sm leading-6 text-green-50/60">Wholesale groceries, beverages and everyday essentials for your business.</p></div>
             <div><h2 class="store-footer-title">Shop</h2><div class="grid gap-2.5 text-sm"><a href="{{ route('store.shop') }}">All Products</a>@foreach($storeCategories->take(5) as $footerCategory)<a href="{{ route('store.category', $footerCategory->slug) }}">{{ $footerCategory->name }}</a>@endforeach</div></div>
             <div><h2 class="store-footer-title">Help</h2><div class="grid gap-2.5 text-sm"><a href="{{ route('store.contact') }}">Contact Us</a><a href="{{ route('store.contact') }}#location">Maldives</a><a href="{{ route('store.shop') }}">Browse Categories</a></div></div>
-            <div><h2 class="store-footer-title">Contact</h2><div class="grid gap-2.5 text-sm text-slate-400">@if($storeCompany->phone)<a href="tel:{{ $storeCompany->phone }}">{{ $storeCompany->phone }}</a>@endif @if($storeCompany->email)<a href="mailto:{{ $storeCompany->email }}">{{ $storeCompany->email }}</a>@endif <span>Maldives</span></div></div>
+            <div><h2 class="store-footer-title">Contact</h2><div class="grid gap-2.5 text-sm text-green-50/60">@if($storeCompany->phone)<a href="tel:{{ $storeCompany->phone }}">{{ $storeCompany->phone }}</a>@endif @if($storeCompany->email)<a href="mailto:{{ $storeCompany->email }}">{{ $storeCompany->email }}</a>@endif <span>Malé, Maldives</span></div></div>
         </div>
-        <div class="store-container flex flex-col gap-2 border-t border-white/10 py-6 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-            <span>© {{ now()->year }} Moscow Traders Wholesale. All rights reserved.</span>
-            <span>Website created by <a href="https://micronet.mv" target="_blank" rel="noopener noreferrer" class="font-semibold text-slate-300 transition hover:text-white">micronet.mv</a></span>
-        </div>
+        <div class="store-container flex flex-col gap-2 border-t border-white/10 py-6 text-xs text-green-50/50 sm:flex-row sm:items-center sm:justify-between"><span>© {{ now()->year }} Moscow Traders Wholesale. All rights reserved.</span><span>Website created by <a href="https://micronet.mv" target="_blank" rel="noopener noreferrer" class="font-semibold text-white transition hover:text-lime-300">micronet.mv</a></span></div>
     </footer>
 
-    @if($storeCompany->website_whatsapp)
-        <a href="https://wa.me/{{ preg_replace('/\D+/', '', $storeCompany->website_whatsapp) }}" target="_blank" rel="noopener" class="fixed right-5 bottom-5 z-40 grid h-14 w-14 place-items-center rounded-full bg-emerald-500 text-white shadow-xl" aria-label="Contact Moscow Traders Wholesale on WhatsApp">WA</a>
-    @endif
+    @if($storeCompany->website_whatsapp)<a href="https://wa.me/{{ preg_replace('/\D+/', '', $storeCompany->website_whatsapp) }}" target="_blank" rel="noopener" class="fixed right-5 bottom-5 z-40 grid h-14 w-14 place-items-center rounded-full bg-[#25a244] font-black text-white shadow-xl" aria-label="Contact Moscow Traders Wholesale on WhatsApp">WA</a>@endif
     @stack('scripts')
 </body>
 </html>

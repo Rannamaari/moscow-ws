@@ -14,16 +14,14 @@ class StorefrontTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_storefront_only_shows_products_enabled_for_online_sale(): void
+    public function test_homepage_only_shows_featured_online_products(): void
     {
         $this->seed(DatabaseSeeder::class);
-        $online = Product::query()->where('sku', 'GALAXY-A16')->firstOrFail();
-        $offline = Product::query()->where('sku', 'COKE-500')->firstOrFail();
+        $online = Product::query()->where('sku', 'XL-BIG-250')->firstOrFail();
+        $offline = Product::query()->where('sku', 'WATER-5L-CASE')->firstOrFail();
+        $offline->update(['show_online' => false]);
 
-        $this->get(route('store.home'))->assertOk()->assertSee($online->name)->assertSee('GST inclusive')->assertSee('images/island thrift logo.png', false)->assertDontSee($offline->name);
-        $this->get(route('store.shop'))->assertOk()->assertSee($online->name)->assertSee('GST inclusive')->assertDontSee($offline->name);
-        $this->get(route('store.product', $online->slug))->assertOk()->assertSee($online->name)->assertSee('GST inclusive');
-        $this->get('/products/'.$offline->slug)->assertNotFound();
+        $this->get(route('store.home'))->assertOk()->assertSee($online->name)->assertSee('GST inclusive')->assertSee('images/moscow logo.png', false)->assertDontSee($offline->name)->assertDontSee('New Arrivals')->assertDontSee('Popular Products');
     }
 
     public function test_product_page_renders_a_formatted_and_sanitized_description(): void

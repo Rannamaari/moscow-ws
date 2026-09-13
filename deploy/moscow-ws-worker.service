@@ -1,0 +1,16 @@
+[Unit]
+Description=Moscow Traders Wholesale Laravel queue worker
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+Restart=always
+RestartSec=5
+WorkingDirectory=/var/www/moscow-ws
+ExecStart=/usr/bin/php artisan queue:work database --sleep=3 --tries=3 --timeout=90 --max-time=3600
+StandardOutput=append:/var/www/moscow-ws/storage/logs/queue-worker.log
+StandardError=append:/var/www/moscow-ws/storage/logs/queue-worker-error.log
+
+[Install]
+WantedBy=multi-user.target

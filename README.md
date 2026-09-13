@@ -73,10 +73,10 @@ Production templates are available in [`deploy/`](deploy/) and [`.env.production
 For a first deployment on an Ubuntu droplet with Nginx and PHP-FPM already installed:
 
 ```bash
-sudo mkdir -p /var/www/islandthrift
-sudo chown "$USER":www-data /var/www/islandthrift
-git clone https://github.com/Rannamaari/islandthrift.git /var/www/islandthrift
-cd /var/www/islandthrift
+sudo mkdir -p /var/www/moscow-ws
+sudo chown "$USER":www-data /var/www/moscow-ws
+git clone https://github.com/Rannamaari/moscow-ws.git /var/www/moscow-ws
+cd /var/www/moscow-ws
 cp .env.production.example .env
 composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 php artisan key:generate
@@ -88,28 +88,28 @@ sudo find storage bootstrap/cache -type f -exec chmod 0664 {} +
 Edit `.env`, enter the real domain, database name, and database password, then run:
 
 ```bash
-ISLAND_THRIFT_DIR=/var/www/islandthrift bash deploy/deploy.sh
+MOSCOW_WS_DIR=/var/www/moscow-ws bash deploy/deploy.sh
 ```
 
-The deployment script installs production dependencies, builds assets, places Laravel briefly into maintenance mode, runs migrations without demo seeders, creates the public storage link, caches the application configuration, and restarts queue workers. If the application is already installed elsewhere, set `ISLAND_THRIFT_DIR` to that directory.
+The deployment script installs production dependencies, builds assets, places Laravel briefly into maintenance mode, runs migrations without demo seeders, creates the public storage link, caches the application configuration, and restarts queue workers. If the application is already installed elsewhere, set `MOSCOW_WS_DIR` to that directory.
 
-Install the included Nginx and queue worker templates. They target this droplet's PHP 8.4 socket and `/var/www/islandthrift`; adjust those values first if the server layout changes:
+Install the included Nginx and queue worker templates. They target this droplet's PHP 8.4 socket and `/var/www/moscow-ws`; adjust those values first if the server layout changes:
 
 ```bash
-sudo cp deploy/nginx-islandthrift.conf /etc/nginx/sites-available/islandthrift
-sudo ln -s /etc/nginx/sites-available/islandthrift /etc/nginx/sites-enabled/islandthrift
+sudo cp deploy/nginx-moscow-ws.conf /etc/nginx/sites-available/moscow-ws
+sudo ln -s /etc/nginx/sites-available/moscow-ws /etc/nginx/sites-enabled/moscow-ws
 sudo nginx -t
 sudo systemctl reload nginx
-sudo cp deploy/islandthrift-worker.service /etc/systemd/system/islandthrift-worker.service
+sudo cp deploy/moscow-ws-worker.service /etc/systemd/system/moscow-ws-worker.service
 sudo systemctl daemon-reload
-sudo systemctl enable --now islandthrift-worker
+sudo systemctl enable --now moscow-ws-worker
 ```
 
 After DNS points to the droplet, issue the HTTPS certificate and confirm Laravel's health endpoint:
 
 ```bash
-sudo certbot --nginx -d islandthrift.micronet.mv
-curl --fail https://islandthrift.micronet.mv/up
+sudo certbot --nginx -d shop.micronet.mv
+curl --fail https://shop.micronet.mv/up
 ```
 
 Do not run `php artisan migrate --seed` in production because the demo seeder creates sample products and known development passwords.

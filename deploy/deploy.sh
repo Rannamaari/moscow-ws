@@ -2,22 +2,22 @@
 
 set -Eeuo pipefail
 
-ISLAND_THRIFT_DIR="${ISLAND_THRIFT_DIR:-/var/www/islandthrift}"
+MOSCOW_WS_DIR="${MOSCOW_WS_DIR:-/var/www/moscow-ws}"
 
-if [[ ! -f "${ISLAND_THRIFT_DIR}/artisan" ]]; then
-    echo "Laravel application not found at ${ISLAND_THRIFT_DIR}."
-    echo "Set ISLAND_THRIFT_DIR to the deployed application directory and run again."
+if [[ ! -f "${MOSCOW_WS_DIR}/artisan" ]]; then
+    echo "Laravel application not found at ${MOSCOW_WS_DIR}."
+    echo "Set MOSCOW_WS_DIR to the deployed application directory and run again."
     exit 1
 fi
 
-cd "${ISLAND_THRIFT_DIR}"
+cd "${MOSCOW_WS_DIR}"
 
 if [[ ! -f .env ]]; then
-    echo "Missing ${ISLAND_THRIFT_DIR}/.env. Copy .env.production.example and enter the production values first."
+    echo "Missing ${MOSCOW_WS_DIR}/.env. Copy .env.production.example and enter the production values first."
     exit 1
 fi
 
-if grep -Eq 'DB_PASSWORD=password|APP_KEY=GENERATE_ON_THE_SERVER' .env; then
+if grep -Eq 'DB_(HOST|PORT|DATABASE|USERNAME|PASSWORD)=SET_AS_DEPLOYMENT_SECRET|APP_KEY=GENERATE_ON_THE_SERVER' .env; then
     echo "Production placeholders remain in .env. Set the database password and APP_KEY first."
     exit 1
 fi

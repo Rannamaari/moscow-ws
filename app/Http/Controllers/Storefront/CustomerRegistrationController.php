@@ -73,7 +73,7 @@ class CustomerRegistrationController extends Controller
             'expires_at' => now()->addMinutes(5),
             'request_ip' => $request->ip(),
         ]);
-        $result = $sms->send($phone, "Your Moscow Traders Wholesale verification code is {$code}. It expires in 5 minutes.", $company->id, null, 'customer_otp');
+        $result = $sms->send($phone, "Your Moscow Trade verification code is {$code}. It expires in 5 minutes.", $company->id, null, 'customer_otp');
 
         if (! $result['successful']) {
             $challenge->delete();

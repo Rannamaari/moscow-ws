@@ -1,6 +1,6 @@
 @extends('layouts.storefront')
 
-@section('title', 'Checkout | Moscow Traders Wholesale')
+@section('title', 'Checkout | Moscow Trade')
 
 @section('content')
 <section class="store-container pt-10 sm:pt-14">
@@ -69,7 +69,7 @@
                         @foreach($deliveryMethods as $key => $label)
                             <label class="store-choice">
                                 <input type="radio" name="delivery_method" value="{{ $key }}" @checked(old('delivery_method', array_key_first($deliveryMethods)) === $key)>
-                                <span><strong>{{ $label }}</strong>@if($key === 'pickup')<small>Collect from Moscow Traders Wholesale.</small>@else<small>We will contact you to confirm delivery details.</small>@endif</span>
+                                <span><strong>{{ $label }}</strong>@if($key === 'pickup')<small>Collect from Moscow Trade.</small>@else<small>We will contact you to confirm delivery details.</small>@endif</span>
                             </label>
                         @endforeach
                     </div>

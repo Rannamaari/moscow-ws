@@ -2,11 +2,11 @@
     $catalog = app(\App\Services\StorefrontCatalog::class);
     $price = $catalog->price($product); $regular = $catalog->regularPrice($product); $stock = $catalog->available($product);
     $images = collect($product->images ?? []); $mainImage = $images->first(); $mainUrl = $mainImage ? \Illuminate\Support\Facades\Storage::disk('public')->url($mainImage) : null;
-    $metaDescription = $product->short_description ?: Str::limit(strip_tags($product->description ?: "Buy {$product->name} from Moscow Traders Wholesale."), 155);
+    $metaDescription = $product->short_description ?: Str::limit(strip_tags($product->description ?: "Buy {$product->name} from Moscow Trade."), 155);
     $analyticsViewItem = ['currency'=>$product->branchPrices->first()?->currency ?? 'MVR','value'=>$price,'items'=>[['item_id'=>$product->sku,'item_name'=>$product->name,'item_brand'=>$product->brand?->name,'item_category'=>$product->category?->name,'price'=>$price]]];
 @endphp
 @extends('layouts.storefront')
-@section('title', $product->name.' | Moscow Traders Wholesale')
+@section('title', $product->name.' | Moscow Trade')
 @section('description', $metaDescription)
 @section('canonical', route('store.product', $product->slug))
 @section('og_type', 'product')

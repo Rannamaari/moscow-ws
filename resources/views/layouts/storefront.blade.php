@@ -5,8 +5,8 @@
     $cartCount = collect(session('store_cart', []))->sum();
     $logoCandidates = ['images/moscow logo.png', 'images/moscow-traders-wholesale/logo.webp', 'images/moscow-traders-wholesale/logo.png', 'images/moscow-traders-wholesale/logo.svg', 'logo.png', 'logo.svg'];
     $logoPath = collect($logoCandidates)->first(fn ($path) => file_exists(public_path($path)));
-    $pageTitle = trim($__env->yieldContent('title', 'Moscow Traders Wholesale'));
-    $pageDescription = trim($__env->yieldContent('description', 'Shop wholesale groceries and everyday essentials from Moscow Traders Wholesale in the Maldives.'));
+    $pageTitle = trim($__env->yieldContent('title', 'Moscow Trade'));
+    $pageDescription = trim($__env->yieldContent('description', 'Shop wholesale groceries and everyday essentials from Moscow Trade in the Maldives.'));
     $canonical = trim($__env->yieldContent('canonical', url()->current()));
     $socialImage = trim($__env->yieldContent('social_image', $logoPath ? asset($logoPath) : ''));
     $robots = trim($__env->yieldContent('robots', 'index, follow, max-image-preview:large'));
@@ -15,7 +15,7 @@
         '@context' => 'https://schema.org',
         '@type' => 'Store',
         '@id' => route('store.home').'#store',
-        'name' => 'Moscow Traders Wholesale',
+        'name' => 'Moscow Trade',
         'url' => route('store.home'),
         'logo' => $logoPath ? asset($logoPath) : null,
         'image' => $socialImage ?: null,
@@ -34,6 +34,12 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/x-icon" href="{{ asset('images/favicon.ico') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('images/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('images/favicon-16x16.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('images/apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ asset('images/site.webmanifest') }}">
+    <meta name="theme-color" content="#173e24">
     <meta name="description" content="{{ $pageDescription }}">
     <meta name="robots" content="{{ $robots }}">
     @if($googleSiteVerification)<meta name="google-site-verification" content="{{ $googleSiteVerification }}">@endif
@@ -42,7 +48,7 @@
     <meta property="og:title" content="{{ $pageTitle }}">
     <meta property="og:description" content="{{ $pageDescription }}">
     <meta property="og:url" content="{{ $canonical }}">
-    <meta property="og:site_name" content="Moscow Traders Wholesale">
+    <meta property="og:site_name" content="Moscow Trade">
     <meta property="og:locale" content="en_MV">
     @if($socialImage)<meta property="og:image" content="{{ $socialImage }}">@endif
     <meta name="twitter:card" content="summary_large_image">
@@ -73,13 +79,13 @@
         </div>
 
         <div class="store-container grid min-h-20 grid-cols-[auto_1fr_auto] items-center gap-3 py-3 lg:min-h-24 lg:gap-8">
-            <a href="{{ route('store.home') }}" class="flex shrink-0 items-center gap-3" aria-label="Moscow Traders Wholesale home">
+            <a href="{{ route('store.home') }}" class="flex shrink-0 items-center gap-3" aria-label="Moscow Trade home">
                 @if($logoPath)
-                    <img src="{{ asset($logoPath) }}" width="1024" height="1024" alt="Moscow Traders Wholesale" class="h-14 w-14 object-contain sm:h-16 sm:w-16">
+                    <img src="{{ asset($logoPath) }}" width="1024" height="1024" alt="Moscow Trade" class="h-14 w-14 object-contain sm:h-16 sm:w-16">
                 @else
                     <span class="grid h-12 w-12 place-items-center rounded-full bg-[#66c11f] text-lg font-black text-white">MT</span>
                 @endif
-                <span class="hidden leading-tight md:block"><strong class="block text-lg font-black tracking-tight">Moscow Traders</strong><small class="text-[10px] font-black uppercase tracking-[.2em] text-[#26833c]">Wholesale</small></span>
+                <span class="hidden leading-tight md:block"><strong class="block text-lg font-black tracking-tight">Moscow Trade</strong><small class="text-[10px] font-black uppercase tracking-[.2em] text-[#26833c]">Grocery Wholesale</small></span>
             </a>
 
             <form action="{{ route('store.shop') }}" class="hidden md:block">
@@ -131,15 +137,15 @@
 
     <footer class="mt-20 bg-[#12391f] text-green-50/80">
         <div class="store-container grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
-            <div><div class="mb-4 flex items-center gap-3">@if($logoPath)<img src="{{ asset($logoPath) }}" width="1024" height="1024" alt="Moscow Traders Wholesale" class="h-16 w-16 rounded-full bg-white object-contain">@endif<div><strong class="block text-lg text-white">Moscow Traders</strong><small class="font-bold uppercase tracking-[.18em] text-lime-300">Wholesale</small></div></div><p class="max-w-xs text-sm leading-6 text-green-50/60">Wholesale groceries, beverages and everyday essentials for your business.</p></div>
+            <div><div class="mb-4 flex items-center gap-3">@if($logoPath)<img src="{{ asset($logoPath) }}" width="1024" height="1024" alt="Moscow Trade" class="h-16 w-16 rounded-full bg-white object-contain">@endif<div><strong class="block text-lg text-white">Moscow Trade</strong><small class="font-bold uppercase tracking-[.18em] text-lime-300">Grocery Wholesale</small></div></div><p class="max-w-xs text-sm leading-6 text-green-50/60">Wholesale groceries, beverages and everyday essentials for your business.</p></div>
             <div><h2 class="store-footer-title">Shop</h2><div class="grid gap-2.5 text-sm"><a href="{{ route('store.shop') }}">All Products</a>@foreach($storeCategories->take(5) as $footerCategory)<a href="{{ route('store.category', $footerCategory->slug) }}">{{ $footerCategory->name }}</a>@endforeach</div></div>
             <div><h2 class="store-footer-title">Help</h2><div class="grid gap-2.5 text-sm"><a href="{{ route('store.contact') }}">Contact Us</a><a href="{{ route('store.contact') }}#location">Maldives</a><a href="{{ route('store.shop') }}">Browse Categories</a></div></div>
             <div><h2 class="store-footer-title">Contact</h2><div class="grid gap-2.5 text-sm text-green-50/60">@if($storeCompany->phone)<a href="tel:{{ $storeCompany->phone }}">{{ $storeCompany->phone }}</a>@endif @if($storeCompany->email)<a href="mailto:{{ $storeCompany->email }}">{{ $storeCompany->email }}</a>@endif <span>Malé, Maldives</span></div></div>
         </div>
-        <div class="store-container flex flex-col gap-2 border-t border-white/10 py-6 text-xs text-green-50/50 sm:flex-row sm:items-center sm:justify-between"><span>© {{ now()->year }} Moscow Traders Wholesale. All rights reserved.</span><span>Website created by <a href="https://micronet.mv" target="_blank" rel="noopener noreferrer" class="font-semibold text-white transition hover:text-lime-300">micronet.mv</a></span></div>
+        <div class="store-container flex flex-col gap-2 border-t border-white/10 py-6 text-xs text-green-50/50 sm:flex-row sm:items-center sm:justify-between"><span>© {{ now()->year }} Moscow Trade. All rights reserved.</span><span>Website created by <a href="https://micronet.mv" target="_blank" rel="noopener noreferrer" class="font-semibold text-white transition hover:text-lime-300">micronet.mv</a></span></div>
     </footer>
 
-    @if($storeCompany->website_whatsapp)<a href="https://wa.me/{{ preg_replace('/\D+/', '', $storeCompany->website_whatsapp) }}" target="_blank" rel="noopener" class="fixed right-5 bottom-5 z-40 grid h-14 w-14 place-items-center rounded-full bg-[#25a244] font-black text-white shadow-xl" aria-label="Contact Moscow Traders Wholesale on WhatsApp">WA</a>@endif
+    @if($storeCompany->website_whatsapp)<a href="https://wa.me/{{ preg_replace('/\D+/', '', $storeCompany->website_whatsapp) }}" target="_blank" rel="noopener" class="fixed right-5 bottom-5 z-40 grid h-14 w-14 place-items-center rounded-full bg-[#25a244] font-black text-white shadow-xl" aria-label="Contact Moscow Trade on WhatsApp">WA</a>@endif
     @stack('scripts')
 </body>
 </html>

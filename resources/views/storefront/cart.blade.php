@@ -1,5 +1,5 @@
 @extends('layouts.storefront')
-@section('title', 'Your Cart | Moscow Traders Wholesale')
+@section('title', 'Your Cart | Moscow Trade')
 @section('content')
 <section class="store-container pt-10 sm:pt-14"><span class="store-kicker">Your selection</span><h1 class="mt-2 text-4xl font-black tracking-tight sm:text-5xl">Shopping Cart</h1>
 @if($items->isEmpty())<div class="store-empty mt-10 py-16"><h2 class="text-xl font-black text-slate-900">Your cart is empty</h2><p class="mt-2">Explore our wholesale grocery catalogue.</p><a href="{{ route('store.shop') }}" class="store-button-primary mt-6">Browse Shop</a></div>

@@ -1,5 +1,5 @@
 @extends('layouts.storefront')
-@section('title', 'Customer Account | Moscow Traders Wholesale')
+@section('title', 'Customer Account | Moscow Trade')
 @section('content')
 <section class="store-container max-w-2xl pt-10 sm:pt-14">
     <span class="store-kicker">Customer account</span>

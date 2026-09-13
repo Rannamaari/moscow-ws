@@ -1,14 +1,14 @@
 @extends('layouts.storefront')
 
-@section('title', 'Moscow Traders Wholesale | Wholesale Groceries')
-@section('description', 'Shop featured wholesale groceries, beverages and everyday essentials from Moscow Traders Wholesale in the Maldives.')
+@section('title', 'Moscow Trade | Wholesale Groceries')
+@section('description', 'Shop featured wholesale groceries, beverages and everyday essentials from Moscow Trade in the Maldives.')
 
 @section('content')
 <section class="store-container pt-5 sm:pt-7">
     <div class="store-supermarket-hero relative overflow-hidden rounded-[1.75rem]">
         <div class="relative z-10 grid min-h-[430px] lg:grid-cols-[.9fr_1.1fr]">
             <div class="flex flex-col justify-center px-7 py-12 sm:px-12 lg:px-16 lg:py-16">
-                <span class="store-eyebrow">Moscow Traders Wholesale</span>
+                <span class="store-eyebrow">Moscow Trade</span>
                 <h1 class="mt-5 max-w-xl text-4xl font-black leading-[1.03] tracking-[-.04em] text-[#173723] sm:text-5xl lg:text-6xl">Everyday groceries.<br><span class="text-[#2d8c3f]">Better wholesale value.</span></h1>
                 <p class="mt-5 max-w-lg text-base leading-7 text-slate-600 sm:text-lg">Stock your shop, café or business with groceries, beverages and household essentials from one reliable supplier.</p>
                 <div class="mt-8 flex flex-wrap gap-3"><a href="#featured" class="store-hero-button">Shop Featured</a><a href="{{ route('store.contact') }}" class="store-hero-secondary">Contact Us</a></div>
